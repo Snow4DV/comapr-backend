@@ -9,4 +9,7 @@ import ru.snowadv.comaprbackend.entity.roadmap.RoadMap
 @Repository
 interface RoadMapRepository : JpaRepository<RoadMap?, Long?> {
     fun findAllByCategoryIdOrderByName(id: Long): List<RoadMap>
+    fun findAllByStatusIsOrderByName(status: RoadMap.VerificationStatus): List<RoadMap>
+
+    fun findAllByStatusIsAndCategoryIdOrderByName(status: RoadMap.VerificationStatus, categoryId: Long): List<RoadMap>
 }

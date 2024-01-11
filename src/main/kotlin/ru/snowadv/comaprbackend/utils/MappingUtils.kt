@@ -25,11 +25,11 @@ fun Node.toDto(): NodeDto {
 fun RoadMap.toDto(votes: List<Vote>? = null): RoadMapDto {
     val likes = votes?.count { it.like }
     val dislikes = votes?.let { it.size - (likes ?: 0)}
-    return RoadMapDto(id, name, description, creator.toDto(), status.name, category.toDto(), nodes.map { it.toDto() }, likes, dislikes)
+    return RoadMapDto(id, name, description, creator.toDto(), status.id, category.toDto(), nodes.map { it.toDto() }, likes, dislikes)
 }
 
 fun RoadMap.toDto(likes: Int, dislikes: Int): RoadMapDto {
-    return RoadMapDto(id, name, description, creator.toDto(), status.name, category.toDto(), nodes.map { it.toDto() }, likes, dislikes)
+    return RoadMapDto(id, name, description, creator.toDto(), status.id, category.toDto(), nodes.map { it.toDto() }, likes, dislikes)
 }
 
 fun Category.toDto(): CategoryDto {
@@ -53,7 +53,9 @@ fun NodeDto.toEntity(): Node {
 }
 
 fun RoadMapDto.toEntity(): RoadMap {
-    return RoadMap(id, name, description, creator.toEntity(), RoadMap.VerificationStatus.valueOf(status), category.toEntity(), nodes.map { it.toEntity() }.toMutableList())
+    val status = RoadMap.VerificationStatus.entries.firstOrNull { it.id == statusId }
+        ?: throw error("Invalid dto with status id $statusId that doesn't exist")
+    return RoadMap(id, name, description, creator.toEntity(), status, category.toEntity(), nodes.map { it.toEntity() }.toMutableList())
 }
 
 fun UserTaskCompletionState.toDto(): UserTaskCompletionStateDto {

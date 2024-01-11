@@ -11,7 +11,7 @@ class RoadMapDto(
     val name: String,
     val description: String,
     val creator: UserDto,
-    val status: String, // VerificationStatus.class
+    val statusId: Int,
     var category: CategoryDto, // Category.class
     var nodes: List<NodeDto> = mutableListOf(),
     val likes: Int? = null,

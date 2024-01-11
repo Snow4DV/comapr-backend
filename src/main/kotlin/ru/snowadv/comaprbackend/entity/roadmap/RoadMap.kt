@@ -31,7 +31,7 @@ class RoadMap( // stores nodes that store tasks
     @OrderBy("id")
     var nodes: MutableList<Node> = mutableListOf()
 ) {
-    enum class VerificationStatus {
-        HIDDEN, UNVERIFIED, COMMUNITY_CHOICE, VERIFIED
+    enum class VerificationStatus(val id: Int) {
+        HIDDEN(0), UNVERIFIED(1), COMMUNITY_CHOICE(2), VERIFIED(3)
     }
 }
