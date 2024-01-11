@@ -1,5 +1,6 @@
 package ru.snowadv.comaprbackend.entity
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.*
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
@@ -26,6 +27,7 @@ class User() {
     lateinit var email: String
 
     @NotBlank
+    @JsonIgnore
     @Size(max = 120)
     lateinit var password: String
 

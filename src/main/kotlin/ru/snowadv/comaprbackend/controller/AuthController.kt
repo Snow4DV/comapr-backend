@@ -65,7 +65,7 @@ class AuthController(
         if(signUpRequest == null) {
             return ResponseEntity
                 .badRequest()
-                .body("Missing request body")
+                .body(MessageResponse("Missing request body"))
         }
         if (userRepository.existsByUsername(signUpRequest.username)) {
             return ResponseEntity
