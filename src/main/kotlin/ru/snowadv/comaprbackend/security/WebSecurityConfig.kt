@@ -1,16 +1,13 @@
 package ru.snowadv.comaprbackend.security
 
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
-import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
-import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer.AuthorizationManagerRequestMatcherRegistry
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer
 import org.springframework.security.config.annotation.web.configurers.ExceptionHandlingConfigurer
 import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer
@@ -21,13 +18,13 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import ru.snowadv.comaprbackend.security.jwt.AuthEntryPointJwt
 import ru.snowadv.comaprbackend.security.jwt.AuthTokenFilter
-import ru.snowadv.comaprbackend.security.service.UserDetailsServiceImpl
+import ru.snowadv.comaprbackend.security.service.UserService
 
 
 @Configuration
 @EnableMethodSecurity
 class WebSecurityConfig(
-    val userDetailsService: UserDetailsServiceImpl,
+    val userDetailsService: UserService,
     val unauthorizedHandler: AuthEntryPointJwt,
     val context: ApplicationContext
 ) {

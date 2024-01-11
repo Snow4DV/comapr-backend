@@ -1,7 +1,7 @@
 package ru.snowadv.comaprbackend.security.service
 
 import jakarta.transaction.Transactional
-import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -11,12 +11,18 @@ import ru.snowadv.comaprbackend.repository.UserRepository
 
 
 @Service
-class UserDetailsServiceImpl(
+class UserService(
     val userRepository: UserRepository
 ) : UserDetailsService {
+
+
+    fun getUserById(id: Long): User? {
+        return  userRepository.findByIdOrNull(id)
+    }
+
     @Transactional
     override fun loadUserByUsername(username: String): UserDetails {
-        val user: User = userRepository.findByUsername(username) ?: throw UsernameNotFoundException("User Not Found with username: $username")
+        val user: User = userRepository.findByUsername(username) ?: throw UsernameNotFoundException("User not Found with username: $username")
         return UserDetailsImpl.build(user)
     }
 }
