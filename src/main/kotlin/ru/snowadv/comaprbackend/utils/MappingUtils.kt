@@ -2,6 +2,8 @@ package ru.snowadv.comaprbackend.utils
 
 import ru.snowadv.comaprbackend.dto.*
 import ru.snowadv.comaprbackend.entity.User
+import ru.snowadv.comaprbackend.entity.cooperation.MapSession
+import ru.snowadv.comaprbackend.entity.cooperation.SessionChatMessage
 import ru.snowadv.comaprbackend.entity.cooperation.UserMapCompletionState
 import ru.snowadv.comaprbackend.entity.cooperation.UserTaskCompletionState
 import ru.snowadv.comaprbackend.entity.roadmap.*
@@ -19,8 +21,15 @@ fun Node.toDto(): NodeDto {
     return NodeDto(id, name, description,  tasks.map { it.toDto() })
 }
 
-fun RoadMap.toDto(): RoadMapDto {
-    return RoadMapDto(id, name, description, creator.toDto(), status.name, category.toDto(), nodes.map { it.toDto() })
+
+fun RoadMap.toDto(votes: List<Vote>? = null): RoadMapDto {
+    val likes = votes?.count { it.like }
+    val dislikes = votes?.let { it.size - (likes ?: 0)}
+    return RoadMapDto(id, name, description, creator.toDto(), status.name, category.toDto(), nodes.map { it.toDto() }, likes, dislikes)
+}
+
+fun RoadMap.toDto(likes: Int, dislikes: Int): RoadMapDto {
+    return RoadMapDto(id, name, description, creator.toDto(), status.name, category.toDto(), nodes.map { it.toDto() }, likes, dislikes)
 }
 
 fun Category.toDto(): CategoryDto {
@@ -44,7 +53,7 @@ fun NodeDto.toEntity(): Node {
 }
 
 fun RoadMapDto.toEntity(): RoadMap {
-    return RoadMap(id, name, description, creator.toEntity(), VerificationStatus.valueOf(status), category.toEntity(), nodes.map { it.toEntity() }.toMutableList())
+    return RoadMap(id, name, description, creator.toEntity(), RoadMap.VerificationStatus.valueOf(status), category.toEntity(), nodes.map { it.toEntity() }.toMutableList())
 }
 
 fun UserTaskCompletionState.toDto(): UserTaskCompletionStateDto {
@@ -60,4 +69,23 @@ fun UserTaskCompletionStateDto.toEntity(): UserTaskCompletionState {
 
 fun UserMapCompletionStateDto.toEntity(): UserMapCompletionState {
     return UserMapCompletionState(id, user.toEntity(), name, tasksStates.map { it.toEntity() }.toMutableList())
+}
+
+fun SessionChatMessage.toDto(): SessionChatMessageDto {
+    return SessionChatMessageDto(id, creator.toDto(), timestamp, text)
+}
+
+fun SessionChatMessageDto.toEntity(): SessionChatMessage {
+    return SessionChatMessage(id, creator.toEntity(), timestamp, text)
+}
+
+fun MapSession.toDto(): MapSessionDto {
+    return MapSessionDto(id, creator.toDto(), users.map { it.toDto() }, public, startDate, state.name, groupChatUrl, messages.map { it.toDto() })
+}
+
+fun MapSessionDto.toEntity(): MapSession {
+    return MapSession(
+        id, creator.toEntity(), users.map { it.toEntity() }.toMutableList(), public, startDate,
+        MapSession.State.valueOf(state), groupChatUrl, messages.map { it.toEntity() }.toMutableList()
+    )
 }

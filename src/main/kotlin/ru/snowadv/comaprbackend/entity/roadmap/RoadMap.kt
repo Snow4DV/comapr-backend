@@ -30,4 +30,8 @@ class RoadMap( // stores nodes that store tasks
     @OneToMany(cascade = [CascadeType.PERSIST])
     @OrderBy("id")
     var nodes: MutableList<Node> = mutableListOf()
-)
+) {
+    enum class VerificationStatus {
+        HIDDEN, UNVERIFIED, COMMUNITY_CHOICE, VERIFIED
+    }
+}

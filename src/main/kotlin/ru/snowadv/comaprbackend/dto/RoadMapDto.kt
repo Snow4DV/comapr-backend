@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Size
 import ru.snowadv.comaprbackend.entity.User
 import ru.snowadv.comaprbackend.entity.roadmap.Category
 import ru.snowadv.comaprbackend.entity.roadmap.Node
-import ru.snowadv.comaprbackend.entity.roadmap.VerificationStatus
 
 class RoadMapDto(
     val id: Long?,
@@ -14,5 +13,7 @@ class RoadMapDto(
     val creator: UserDto,
     val status: String, // VerificationStatus.class
     var category: CategoryDto, // Category.class
-    var nodes: List<NodeDto> = mutableListOf()
+    var nodes: List<NodeDto> = mutableListOf(),
+    val likes: Int? = null,
+    val dislikes: Int? = null
 )
