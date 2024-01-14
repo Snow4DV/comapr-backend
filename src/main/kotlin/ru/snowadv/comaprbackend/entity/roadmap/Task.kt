@@ -3,7 +3,9 @@ package ru.snowadv.comaprbackend.entity.roadmap
 import jakarta.persistence.*
 import jakarta.validation.constraints.Null
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.Immutable
 import org.hibernate.validator.constraints.URL
+import ru.snowadv.comaprbackend.entity.User
 
 
 @Entity
@@ -18,6 +20,10 @@ class Task( // stores a single task
 
     @Size(max = 200)
     var description: String?,
+
+    @ManyToOne
+    @Immutable
+    val creator: User,
 
     @URL
     @Size(max = 150)

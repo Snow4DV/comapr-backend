@@ -2,7 +2,9 @@ package ru.snowadv.comaprbackend.entity.roadmap
 
 import jakarta.persistence.*
 import jakarta.validation.constraints.Size
+import org.springframework.data.annotation.CreatedDate
 import ru.snowadv.comaprbackend.entity.User
+import java.time.LocalDateTime
 
 
 @Entity
@@ -27,11 +29,36 @@ class RoadMap( // stores nodes that store tasks
     @ManyToOne
     var category: Category,
 
-    @OneToMany(cascade = [CascadeType.PERSIST])
+    @OneToMany(cascade = [CascadeType.ALL])
     @OrderBy("id")
-    var nodes: MutableList<Node> = mutableListOf()
+    var nodes: MutableList<Node> = mutableListOf(),
+
+    @CreatedDate
+    @Column(name = "created_at")
+    val createdDate: LocalDateTime = LocalDateTime.now(),
 ) {
     enum class VerificationStatus(val id: Int) {
-        HIDDEN(0), UNVERIFIED(1), COMMUNITY_CHOICE(2), VERIFIED(3)
+        HIDDEN(0), UNVERIFIED(1), COMMUNITY_CHOICE(2), VERIFIED(3);
+        companion object {
+            fun fromId(id: Int): VerificationStatus {
+                return values().find { it.id == id } ?: error("no status with id $id")
+            }
+        }
+    }
+
+
+    fun deepCheckCreator(id: Long): Boolean {
+        if(this.creator.id != id) {
+            return false
+        }
+
+        for(node in nodes) {
+            if(node.creator.id != id) return false
+            for(task in node.tasks) {
+                if(task.creator.id != id) return false
+            }
+        }
+
+        return true
     }
 }

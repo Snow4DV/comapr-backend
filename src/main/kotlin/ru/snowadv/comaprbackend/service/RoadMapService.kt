@@ -2,6 +2,7 @@ package ru.snowadv.comaprbackend.service
 
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import ru.snowadv.comaprbackend.entity.User
 import ru.snowadv.comaprbackend.entity.roadmap.Category
 import ru.snowadv.comaprbackend.entity.roadmap.Node
 import ru.snowadv.comaprbackend.entity.roadmap.RoadMap
@@ -19,6 +20,29 @@ class RoadMapService(private val mapRepo: RoadMapRepository, private val nodeRep
         return mapRepo.findByIdOrNull(id)
     }
 
+    fun getTaskById(id: Long): Task? {
+        return taskRepo.findByIdOrNull(id)
+    }
+
+    fun getNodeById(id: Long): Node? {
+        return nodeRepo.findByIdOrNull(id)
+    }
+
+    fun getCreatorForMapId(id: Long): User {
+        return getRoadMapById(id)?.creator ?: error("No map with id $id")
+    }
+
+    fun getCreatorForNodeId(id: Long): User {
+        return getNodeById(id)?.creator ?: error("No node with id $id")
+    }
+
+    fun getCreatorForTaskId(id: Long): User {
+        return getTaskById(id)?.creator ?: error("No task with id $id")
+    }
+
+    fun getStatusFormapId(id: Long): RoadMap.VerificationStatus {
+        return getRoadMapById(id)?.status ?: error("No map with id $id")
+    }
 
     fun addTask(nodeId: Long, task: Task) {
         val node = nodeRepo.findByIdOrNull(nodeId) ?: throw NoSuchElementException("Node with id $nodeId doesn't exist")
@@ -61,6 +85,14 @@ class RoadMapService(private val mapRepo: RoadMapRepository, private val nodeRep
 
         mapRepo.save(map)
     }
+
+    fun updateKeepCreatorAndStatus(map: RoadMap) {
+        val oldMap = mapRepo.findByIdOrNull(map.id ?: -1L) ?: throw NoSuchElementException("Such map doesn't exist (with id ${map.id})")
+        if(map.status != oldMap.status || map.creator.id != oldMap.creator.id) throw IllegalArgumentException("map has different status and/or creator")
+
+        mapRepo.save(map)
+    }
+
 
 
     fun createNew(map: RoadMap) {

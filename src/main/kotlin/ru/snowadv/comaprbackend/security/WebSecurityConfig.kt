@@ -64,6 +64,7 @@ class WebSecurityConfig(
             }
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers("/api/v1/auth/**").permitAll()
+                auth.requestMatchers("/api/v1/roadmap/**").permitAll()
                     .anyRequest().authenticated()
             }
 

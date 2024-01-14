@@ -12,4 +12,6 @@ interface RoadMapRepository : JpaRepository<RoadMap?, Long?> {
     fun findAllByStatusIsOrderByName(status: RoadMap.VerificationStatus): List<RoadMap>
 
     fun findAllByStatusIsAndCategoryIdOrderByName(status: RoadMap.VerificationStatus, categoryId: Long): List<RoadMap>
+
+
 }

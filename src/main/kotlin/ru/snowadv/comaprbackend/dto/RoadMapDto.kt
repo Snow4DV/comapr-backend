@@ -10,9 +10,7 @@ class RoadMapDto(
     val id: Long?,
     val name: String,
     val description: String,
-    val creator: UserDto,
-    val statusId: Int,
-    var category: CategoryDto, // Category.class
+    var categoryId: Long, // Category.class
     var nodes: List<NodeDto> = mutableListOf(),
     val likes: Int? = null,
     val dislikes: Int? = null

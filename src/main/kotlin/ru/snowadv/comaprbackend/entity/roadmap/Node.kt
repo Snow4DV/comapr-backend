@@ -3,6 +3,7 @@ package ru.snowadv.comaprbackend.entity.roadmap
 import jakarta.persistence.*
 import jakarta.validation.constraints.Size
 import org.hibernate.validator.constraints.URL
+import ru.snowadv.comaprbackend.entity.User
 
 
 @Entity
@@ -18,7 +19,10 @@ class Node( // stores a bunch of tasks + description for them
     @Size(max = 200)
     var description: String?,
 
-    @OneToMany(cascade = [CascadeType.PERSIST])
+    @ManyToOne
+    val creator: User,
+
+    @OneToMany(cascade = [CascadeType.ALL])
     @OrderBy("id")
     val tasks: MutableList<Task> = mutableListOf()
 )

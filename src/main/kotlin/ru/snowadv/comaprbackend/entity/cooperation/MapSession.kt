@@ -3,6 +3,7 @@ package ru.snowadv.comaprbackend.entity.cooperation
 import jakarta.persistence.*
 import jakarta.validation.constraints.Size
 import org.hibernate.validator.constraints.URL
+import org.springframework.data.annotation.CreatedDate
 import ru.snowadv.comaprbackend.entity.User
 import java.time.LocalDateTime
 
@@ -29,7 +30,11 @@ class MapSession(
     var groupChatUrl: String?,
 
     @OneToMany
-    val messages: MutableList<SessionChatMessage> = mutableListOf()
+    val messages: MutableList<SessionChatMessage> = mutableListOf(),
+
+    @CreatedDate
+    @Column(name = "created_at")
+    val createdDate: LocalDateTime = LocalDateTime.now(),
 ) {
     enum class State {
         LOBBY, STARTED, FINISHED

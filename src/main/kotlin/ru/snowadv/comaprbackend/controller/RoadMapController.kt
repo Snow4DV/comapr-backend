@@ -4,6 +4,7 @@ package ru.snowadv.comaprbackend.controller
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
@@ -24,10 +25,11 @@ import ru.snowadv.comaprbackend.repository.UserRepository
 import ru.snowadv.comaprbackend.security.jwt.JwtUtils
 import ru.snowadv.comaprbackend.security.service.UserDetailsImpl
 import ru.snowadv.comaprbackend.security.service.UserService
+import ru.snowadv.comaprbackend.service.DtoConverterService
 import ru.snowadv.comaprbackend.service.RoadMapService
 import ru.snowadv.comaprbackend.service.VoteService
 import ru.snowadv.comaprbackend.utils.currentUserDetailsOrNull
-import ru.snowadv.comaprbackend.utils.toDto
+import ru.snowadv.comaprbackend.utils.currentUserIdOrNull
 import java.util.function.Consumer
 import java.util.stream.Collectors
 
@@ -35,28 +37,60 @@ import java.util.stream.Collectors
 @RestController
 @RequestMapping("/api/v1/roadmap")
 class RoadMapController(private val roadMapService: RoadMapService, private val voteService: VoteService,
-    private val userService: UserService) {
+    private val userService: UserService, private val converter: DtoConverterService) {
+
 
     @GetMapping
     fun fetchRoadMap(@RequestParam id: Long?): ResponseEntity<Any> {
-        val map = roadMapService.getRoadMapById(id ?: -1)?.toDto(voteService.getVotesForRoadMap(id ?: -1))
-        return map?.let { ResponseEntity.ok(it) } ?: run { ResponseEntity.badRequest().body(MessageResponse("map_not_found")) }
+        val map = converter.roadMapToDto(roadMapService.getRoadMapById(id ?: -1) ?: return ResponseEntity.badRequest().body(MessageResponse("map_not_found")) )
+        return ResponseEntity.ok(map)
     }
+
 
     @GetMapping("list")
     fun fetchMaps(@RequestParam statusId: Int?, @RequestParam categoryId: Long?): ResponseEntity<List<RoadMapDto>> {
         val maps = roadMapService.getRoadMapsWithStatusAndOrCategory(statusId, categoryId).map {
-            it.toDto(voteService.getVotesForRoadMap(it.id ?: -1))
+            converter.roadMapToDto(it)
         }
         return ResponseEntity.ok(maps)
     }
 
+
+    @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping("vote")
-    fun voteForRoadmap(@RequestParam id: Long, @RequestParam like: Boolean?): ResponseEntity<MessageResponse> {
+    fun voteForRoadmap(@RequestParam id: Long, @RequestParam like: Boolean?): ResponseEntity<Any> {
         voteService.changeVoteToRoadMap(like, id,
-            SecurityContextHolder.getContext().currentUserDetailsOrNull()?.id ?: error("user with id $id not found"))
-        return ResponseEntity.ok(MessageResponse("Voted successfully"))
+            SecurityContextHolder.getContext().currentUserDetailsOrNull()?.id
+                ?: return ResponseEntity.badRequest().build())
+        return ResponseEntity.ok(MessageResponse("success"))
     }
+
+
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MODERATOR')")
+    @PostMapping("changeStatus")
+    fun changeVerificationStatus(@RequestParam id: Long, statusId: Int): ResponseEntity<Any> {
+        val status = RoadMap.VerificationStatus.fromId(statusId)
+        val map = roadMapService.getRoadMapById(id) ?: return ResponseEntity.badRequest().body(MessageResponse("no_such_map"))
+        map.status = status
+        roadMapService.update(map)
+        return ResponseEntity.ok(MessageResponse("success"))
+    }
+
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @PostMapping("update")
+    fun updateRoadMap(@RequestBody dto: RoadMapDto): ResponseEntity<Any> {
+        val map = converter.roadMapDtoToEntity(dto)
+        if(map.deepCheckCreator(SecurityContextHolder.getContext().currentUserIdOrNull() ?: -1)) {
+            ResponseEntity.status(403).body(MessageResponse("no_permission_to_update"))
+        }
+        roadMapService.update(map)
+        return ResponseEntity.ok(MessageResponse("success"))
+    }
+
+
+
+
+
 
 
 }
