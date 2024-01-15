@@ -15,9 +15,10 @@ class UserMapCompletionState(
     @ManyToOne
     var user: User,
 
-    @Size(max = 100)
-    var name: String,
-
-    @OneToMany
+    @OneToMany(cascade = [CascadeType.ALL])
     val tasksStates: MutableList<UserTaskCompletionState> = mutableListOf()
+
+
+
+
 )

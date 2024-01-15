@@ -2,6 +2,7 @@ package ru.snowadv.comaprbackend.entity.roadmap
 
 import jakarta.persistence.*
 import jakarta.validation.constraints.Size
+import org.hibernate.annotations.Immutable
 import org.springframework.data.annotation.CreatedDate
 import ru.snowadv.comaprbackend.entity.User
 import java.time.LocalDateTime
@@ -21,6 +22,7 @@ class RoadMap( // stores nodes that store tasks
     val description: String, // markdown
 
     @ManyToOne
+    @Immutable
     val creator: User,
 
     @Enumerated(EnumType.STRING)

@@ -17,8 +17,8 @@ class MapSession(
     @ManyToOne
     val creator: User,
 
-    @ManyToMany
-    val users: List<UserMapCompletionState>,
+    @ManyToMany(cascade = [CascadeType.ALL])
+    val users: MutableList<UserMapCompletionState>,
 
     var public: Boolean = false,
 
@@ -36,7 +36,13 @@ class MapSession(
     @Column(name = "created_at")
     val createdDate: LocalDateTime = LocalDateTime.now(),
 ) {
-    enum class State {
-        LOBBY, STARTED, FINISHED
+    enum class State(val id: Int) {
+        LOBBY(0), STARTED(1), FINISHED(2);
+
+        companion object {
+            fun getById(id: Int): State {
+                return entries.first { it.id == id }
+            }
+        }
     }
 }

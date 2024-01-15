@@ -8,13 +8,17 @@ import ru.snowadv.comaprbackend.entity.cooperation.SessionChatMessage
 import ru.snowadv.comaprbackend.entity.cooperation.UserMapCompletionState
 import ru.snowadv.comaprbackend.entity.cooperation.UserTaskCompletionState
 import ru.snowadv.comaprbackend.entity.roadmap.*
+import ru.snowadv.comaprbackend.exception.NoSuchEntityException
+import ru.snowadv.comaprbackend.security.service.UserService
 
 
 @Service
 class DtoConverterService(
-    val roadMapService: RoadMapService,
-    val voteService: VoteService,
-    val categoryService: CategoryService
+    private val roadMapService: RoadMapService,
+    private val voteService: VoteService,
+    private val categoryService: CategoryService,
+    private val sessionService: SessionService,
+    private val userService: UserService
 ) {
     fun userToDto(user: User): UserDto {
         return user.run { UserDto(id, username, email, roles.firstOrNull()?.name?.name ?: "No role") }
@@ -127,28 +131,55 @@ class DtoConverterService(
     }
 
     fun mapSessionToDto(session: MapSession): MapSessionDto {
-        return session.run { MapSessionDto(id,
-            userToDto(creator),
-            users.map { userMapCompletionStateToDto(it) },
-            public,
-            startDate,
-            state.name,
-            groupChatUrl,
-            messages.map { sessionChatMessageToDto(it) }) }
+        return session.run {
+            MapSessionDto(id,
+                userToDto(creator),
+                users.map { userMapCompletionStateToDto(it) },
+                public,
+                startDate,
+                state.id,
+                groupChatUrl,
+                messages.map { sessionChatMessageToDto(it) })
+        }
     }
 
-    fun mapSessionDtoToEntity(dto: MapSessionDto): MapSession {
+    fun mapSessionDtoToEntity(dto: MapSessionDto, newCreator: User? = null): MapSession {
         return dto.run {
             MapSession(
                 id,
-                userDtoToEntity(creator),
+                newCreator ?: userDtoToEntity(creator ?: error("user not set in dto!")),
                 users.map { userMapCompletionStateDtoToEntity(it) }.toMutableList(),
                 public,
                 startDate,
-                MapSession.State.valueOf(state),
+                MapSession.State.getById(stateId),
                 groupChatUrl,
                 messages.map { sessionChatMessageDtoToEntity(it) }.toMutableList()
             )
+        }
+    }
+
+    fun createSessionDtoToEntity(dto: ClearMapSessionDto, creator: User): MapSession {
+        return dto.run {
+            MapSession(
+                null,
+                creator,
+                listOf(),
+                public,
+                startDate,
+                MapSession.State.LOBBY,
+                groupChatUrl,
+                mutableListOf()
+            )
+        }
+    }
+
+    fun updateSessionDtoToEntity(id: Long, dto: ClearMapSessionDto, creator: User): MapSession {
+        return dto.run {
+            val prevSession = sessionService.getById(id) ?: throw NoSuchEntityException("session", id)
+            prevSession.public = public
+            prevSession.groupChatUrl = groupChatUrl
+            prevSession.startDate = startDate
+            prevSession
         }
     }
 }

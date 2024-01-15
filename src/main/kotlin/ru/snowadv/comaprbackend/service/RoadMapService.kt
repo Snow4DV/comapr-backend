@@ -13,8 +13,9 @@ import ru.snowadv.comaprbackend.repository.TaskRepository
 
 
 @Service
-class RoadMapService(private val mapRepo: RoadMapRepository, private val nodeRepo: NodeRepository,
-                     private val taskRepo: TaskRepository) {
+class RoadMapService(
+    private val mapRepo: RoadMapRepository, private val nodeRepo: NodeRepository, private val taskRepo: TaskRepository
+) {
 
     fun getRoadMapById(id: Long): RoadMap? {
         return mapRepo.findByIdOrNull(id)
@@ -54,7 +55,7 @@ class RoadMapService(private val mapRepo: RoadMapRepository, private val nodeRep
     fun removeTask(nodeId: Long, taskId: Long) {
         val node = nodeRepo.findByIdOrNull(nodeId)
         val task = taskRepo.findByIdOrNull(taskId)
-        if(node == null || task == null) throw NoSuchElementException("Such ${if (node == null) "node" else "task"} doesn't exist!")
+        if (node == null || task == null) throw NoSuchElementException("Such ${if (node == null) "node" else "task"} doesn't exist!")
 
         node.tasks.remove(task)
         nodeRepo.save(node)
@@ -71,7 +72,7 @@ class RoadMapService(private val mapRepo: RoadMapRepository, private val nodeRep
     fun removeNode(mapId: Long, nodeId: Long) {
         val map = mapRepo.findByIdOrNull(mapId)
         val node = nodeRepo.findByIdOrNull(nodeId)
-        if(map == null || node == null) throw NoSuchElementException("Such ${if (map == null) "map" else "node"} doesn't exist!")
+        if (map == null || node == null) throw NoSuchElementException("Such ${if (map == null) "map" else "node"} doesn't exist!")
 
         map.nodes.remove(node)
         mapRepo.save(map)
@@ -79,28 +80,37 @@ class RoadMapService(private val mapRepo: RoadMapRepository, private val nodeRep
     }
 
     fun update(map: RoadMap) {
-        if(mapRepo.findByIdOrNull(map.id ?: -1L) == null) {
+        if (mapRepo.findByIdOrNull(map.id ?: -1L) == null) {
             throw NoSuchElementException("Such map doesn't exist (with id ${map.id})")
         }
 
         mapRepo.save(map)
     }
 
-    fun updateKeepCreatorAndStatus(map: RoadMap) {
-        val oldMap = mapRepo.findByIdOrNull(map.id ?: -1L) ?: throw NoSuchElementException("Such map doesn't exist (with id ${map.id})")
-        if(map.status != oldMap.status || map.creator.id != oldMap.creator.id) throw IllegalArgumentException("map has different status and/or creator")
+    fun updateKeepCreatorAndStatus(map: RoadMap): Boolean {
+        val oldMap = mapRepo.findByIdOrNull(map.id ?: -1L)
+            ?: throw NoSuchElementException("Such map doesn't exist (with id ${map.id})")
+        if (map.status != oldMap.status || map.creator.id != oldMap.creator.id) throw IllegalArgumentException("map has different status and/or creator")
+
+        if (mapRepo.findByName(map.name) != null) {
+            return false
+        }
 
         mapRepo.save(map)
+        return true
     }
 
 
-
-    fun createNew(map: RoadMap) {
-        if(mapRepo.findByIdOrNull(map.id ?: -1L) != null) {
+    fun createNew(map: RoadMap): Boolean {
+        if (mapRepo.findByIdOrNull(map.id ?: -1L) != null) {
+            return false
+        }
+        if (mapRepo.findByName(map.name) != null) {
             throw NoSuchElementException("Such map already exists (with id ${map.id})")
         }
 
         mapRepo.save(map)
+        return true
     }
 
     fun delete(mapId: Long) {
@@ -116,16 +126,15 @@ class RoadMapService(private val mapRepo: RoadMapRepository, private val nodeRep
     fun getRoadMapsWithStatusAndOrCategory(status: RoadMap.VerificationStatus?, categoryId: Long?): List<RoadMap> {
 
         return when {
-            status != null && categoryId != null -> mapRepo.findAllByStatusIsAndCategoryIdOrderByName(status, categoryId)
+            status != null && categoryId != null -> mapRepo.findAllByStatusIsAndCategoryIdOrderByName(
+                status, categoryId
+            )
+
             status != null -> mapRepo.findAllByStatusIsOrderByName(status)
             categoryId != null -> mapRepo.findAllByCategoryIdOrderByName(categoryId)
             else -> emptyList()
         }
     }
-
-
-
-
 
 
 }

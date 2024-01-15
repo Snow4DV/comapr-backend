@@ -36,13 +36,18 @@ import java.util.stream.Collectors
 @CrossOrigin(origins = ["*"], maxAge = 3600)
 @RestController
 @RequestMapping("/api/v1/roadmap")
-class RoadMapController(private val roadMapService: RoadMapService, private val voteService: VoteService,
-    private val userService: UserService, private val converter: DtoConverterService) {
+class RoadMapController(
+    private val roadMapService: RoadMapService, private val voteService: VoteService,
+    private val userService: UserService, private val converter: DtoConverterService
+) {
 
 
     @GetMapping
     fun fetchRoadMap(@RequestParam id: Long?): ResponseEntity<Any> {
-        val map = converter.roadMapToDto(roadMapService.getRoadMapById(id ?: -1) ?: return ResponseEntity.badRequest().body(MessageResponse("map_not_found")) )
+        val map = converter.roadMapToDto(
+            roadMapService.getRoadMapById(id ?: -1) ?: return ResponseEntity.badRequest()
+                .body(MessageResponse("map_not_found"))
+        )
         return ResponseEntity.ok(map)
     }
 
@@ -59,9 +64,11 @@ class RoadMapController(private val roadMapService: RoadMapService, private val 
     @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping("vote")
     fun voteForRoadmap(@RequestParam id: Long, @RequestParam like: Boolean?): ResponseEntity<Any> {
-        voteService.changeVoteToRoadMap(like, id,
+        voteService.changeVoteToRoadMap(
+            like, id,
             SecurityContextHolder.getContext().currentUserDetailsOrNull()?.id
-                ?: return ResponseEntity.badRequest().build())
+                ?: return ResponseEntity.badRequest().build()
+        )
         return ResponseEntity.ok(MessageResponse("success"))
     }
 
@@ -70,7 +77,8 @@ class RoadMapController(private val roadMapService: RoadMapService, private val 
     @PostMapping("changeStatus")
     fun changeVerificationStatus(@RequestParam id: Long, statusId: Int): ResponseEntity<Any> {
         val status = RoadMap.VerificationStatus.fromId(statusId)
-        val map = roadMapService.getRoadMapById(id) ?: return ResponseEntity.badRequest().body(MessageResponse("no_such_map"))
+        val map =
+            roadMapService.getRoadMapById(id) ?: return ResponseEntity.badRequest().body(MessageResponse("no_such_map"))
         map.status = status
         roadMapService.update(map)
         return ResponseEntity.ok(MessageResponse("success"))
@@ -80,17 +88,34 @@ class RoadMapController(private val roadMapService: RoadMapService, private val 
     @PostMapping("update")
     fun updateRoadMap(@RequestBody dto: RoadMapDto): ResponseEntity<Any> {
         val map = converter.roadMapDtoToEntity(dto)
-        if(map.deepCheckCreator(SecurityContextHolder.getContext().currentUserIdOrNull() ?: -1)) {
-            ResponseEntity.status(403).body(MessageResponse("no_permission_to_update"))
+        if (map.deepCheckCreator(SecurityContextHolder.getContext().currentUserIdOrNull() ?: -1)) {
+            return ResponseEntity.status(403).body(MessageResponse("no_permission_to_update"))
         }
-        roadMapService.update(map)
-        return ResponseEntity.ok(MessageResponse("success"))
+        return if(!roadMapService.updateKeepCreatorAndStatus(map)) {
+            ResponseEntity.status(403).body(MessageResponse("name_already_used"))
+        } else {
+            ResponseEntity.ok(MessageResponse("success"))
+        }
+
     }
 
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @PostMapping("create")
+    fun createRoadMap(@RequestBody dto: RoadMapDto): ResponseEntity<Any> {
+        val map = converter.roadMapDtoToEntity(
+            dto,
+            userService.getUserById(
+                SecurityContextHolder.getContext().currentUserIdOrNull() ?: return ResponseEntity.status(403)
+                    .body(MessageResponse("not_authorized"))
+            )
+        )
+        return if (!roadMapService.createNew(map)) {
+            ResponseEntity.status(403).body(MessageResponse("name_already_used"))
+        } else {
+            ResponseEntity.ok(MessageResponse("success"))
+        }
 
-
-
-
+    }
 
 
 }

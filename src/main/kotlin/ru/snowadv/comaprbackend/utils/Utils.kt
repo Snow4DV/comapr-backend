@@ -5,6 +5,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
+import ru.snowadv.comaprbackend.entity.User
 import ru.snowadv.comaprbackend.security.service.UserDetailsImpl
 
 fun SecurityContext.currentUserDetailsOrNull(): UserDetailsImpl? {
