@@ -44,7 +44,7 @@ class CategoryController(
 
 
     @GetMapping("list")
-    fun getCategories(@RequestParam id: Long?): ResponseEntity<Any> {
+    fun getCategories(): ResponseEntity<Any> {
         return ResponseEntity.ok(categoryService.getAllCategories())
     }
 
