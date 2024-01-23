@@ -5,9 +5,10 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
-import ru.snowadv.comaprbackend.dto.ClearMapSessionDto
+import ru.snowadv.comaprbackend.dto.*
 import ru.snowadv.comaprbackend.entity.User
 import ru.snowadv.comaprbackend.entity.cooperation.MapSession
+import ru.snowadv.comaprbackend.entity.cooperation.SessionChatMessage
 import ru.snowadv.comaprbackend.payload.response.MessageResponse
 import ru.snowadv.comaprbackend.security.service.UserService
 import ru.snowadv.comaprbackend.service.DtoConverterService
@@ -26,13 +27,19 @@ class SessionController(
     private val converter: DtoConverterService,
     private val sessionService: SessionService
 ) {
+    @GetMapping("list")
+    fun fetchMaps(): ResponseEntity<List<MapSessionDto>> {
+        return ResponseEntity.ok(
+            sessionService.getPublicSessions(MapSession.State.LOBBY).map { converter.mapSessionToDto(it) })
+    }
+
     @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/{id}")
     fun getSession(@PathVariable id: Long): ResponseEntity<Any> {
         val user = getCurrentUser()
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
-        if(user == null || (!session.public && !(session.creator == user || session.users.any { it.user == user }))) {
+        if (user == null || (!session.public && !(session.creator == user || session.users.any { it.user == user }))) {
             return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
         }
         return ResponseEntity.ok(converter.mapSessionToDto(session))
@@ -40,15 +47,17 @@ class SessionController(
 
 
     @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("/{id}/create")
-    fun createSession(@RequestBody dto: ClearMapSessionDto, @PathVariable id: Long): ResponseEntity<Any> {
+    @PostMapping("create")
+    fun createSession(@RequestBody dto: ClearMapSessionDto): ResponseEntity<Any> {
         val user = getCurrentUser()
         val mapSession = converter.createSessionDtoToEntity(
             dto, user ?: return ResponseEntity.status(403).body(MessageResponse("unauthorized"))
         )
+        val roadMap = roadMapService.getRoadMapById(dto.roadMapId) ?: return ResponseEntity.status(404)
+            .body(MessageResponse("no_such_roadmap"))
         if (mapSession.creator.id != user.id) return ResponseEntity.status(403).body(MessageResponse("unauthorized"))
-        sessionService.createSession(mapSession)
-        return ResponseEntity.ok(MessageResponse("success"))
+        val savedSession = sessionService.createSession(mapSession)
+        return ResponseEntity.ok(converter.mapSessionToDto(savedSession))
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
@@ -84,13 +93,15 @@ class SessionController(
         val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
-        if (session.creator.id == user.id || session.users.any { it.user == user }) return ResponseEntity.status(403).body(MessageResponse("already_joined"))
+        if (session.creator.id == user.id || session.users.any { it.user == user }) return ResponseEntity.status(403)
+            .body(MessageResponse("already_joined"))
         if (session.state != MapSession.State.LOBBY) {
             return ResponseEntity.status(403).body(MessageResponse("session_already_started"))
         }
 
-        if(!sessionService.joinSession(id, user)) return ResponseEntity.status(403).body(MessageResponse("already_joined"))
-        return ResponseEntity.ok(MessageResponse("success"))
+        if (!sessionService.joinSession(id, user)) return ResponseEntity.status(403)
+            .body(MessageResponse("already_joined"))
+        return ResponseEntity.ok(converter.mapSessionToDto(session))
     }
 
 
@@ -100,27 +111,64 @@ class SessionController(
         val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
-        if (session.creator.id != user.id && !session.users.any { it.user == user }) return ResponseEntity.status(403).body(MessageResponse("not_in_session"))
         if (session.state != MapSession.State.LOBBY) {
-            return ResponseEntity.status(403).body(MessageResponse("session_already_started"))
+            return ResponseEntity.status(403).body(MessageResponse("session_already_started_or_finished"))
         }
-        if(!sessionService.leaveSession(id, user)) return ResponseEntity.status(403).body(MessageResponse("not_in_session"))
+
+        if (session.creator.id == user.id) {
+            sessionService.endSession(session.id ?: error("no_such_session"))
+        } else if (session.users.any { it.user == user }) {
+            if (!sessionService.leaveSession(id, user)) return ResponseEntity.status(403)
+                .body(MessageResponse("not_in_session"))
+        } else {
+            return ResponseEntity.status(403).body(MessageResponse("not_in_session"))
+        }
+
+
         return ResponseEntity.ok(MessageResponse("success"))
     }
 
 
-
     @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("/{id}/markTask/{taskId}")
-    fun markTask(@PathVariable id: Long, @PathVariable taskId: Long, @RequestParam state: Boolean): ResponseEntity<Any> {
+    @PostMapping("/{id}/sendMessage")
+    fun sendMessage(
+        @PathVariable id: Long,
+        @RequestBody message: NewSessionChatMessageDto
+    ): ResponseEntity<Any> {
         val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
-        if (session.creator.id != user.id && !session.users.any { it.user == user }) return ResponseEntity.status(403).body(MessageResponse("not_in_session"))
+        if (session.creator.id != user.id && !session.users.any { it.user == user }) return ResponseEntity.status(403)
+            .body(MessageResponse("not_in_session"))
+
+        val newMessage = SessionChatMessage(creator = user, text = message.text)
+        session.messages.add(newMessage)
+        sessionService.updateSession(session)
+        return ResponseEntity.ok(MessageResponse("success"))
+    }
+
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @PostMapping("/{id}/markTask/{taskId}")
+    fun markTask(
+        @PathVariable id: Long,
+        @PathVariable taskId: Long,
+        @RequestParam state: Boolean
+    ): ResponseEntity<Any> {
+        val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
+            .body(MessageResponse("such_session_doesnt_exist"))
+        if (session.creator.id != user.id && !session.users.any { it.user == user }) return ResponseEntity.status(403)
+            .body(MessageResponse("not_in_session"))
         if (session.state != MapSession.State.STARTED) {
             return ResponseEntity.status(403).body(MessageResponse("session_not_started"))
         }
-        if(!sessionService.markTask(id, taskId, user.id ?: error("not full user"), state)) return ResponseEntity.status(403).body(MessageResponse("cant_mark"))
+        if (!sessionService.markTask(
+                id,
+                taskId,
+                user.id ?: error("not full user"),
+                state
+            )
+        ) return ResponseEntity.status(403).body(MessageResponse("cant_mark"))
         return ResponseEntity.ok(MessageResponse("success"))
     }
 
@@ -130,12 +178,14 @@ class SessionController(
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
         if (session.creator.id != user.id) return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
-        if (start && !sessionService.startSession(session.id ?: -1) || !start && !sessionService.endSession(session.id ?: -1)) {
+        if (start && sessionService.startSession(session.id ?: -1) == null || !start && sessionService.endSession(
+                session.id ?: -1
+            ) == null
+        ) {
             return ResponseEntity.status(403).body(MessageResponse("cant_start_or_end_session"))
         }
         return ResponseEntity.ok(MessageResponse("success"))
     }
-
 
 
     private fun getCurrentUser(): User? {

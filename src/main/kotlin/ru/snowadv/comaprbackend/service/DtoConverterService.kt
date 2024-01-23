@@ -10,6 +10,7 @@ import ru.snowadv.comaprbackend.entity.cooperation.UserTaskCompletionState
 import ru.snowadv.comaprbackend.entity.roadmap.*
 import ru.snowadv.comaprbackend.exception.NoSuchEntityException
 import ru.snowadv.comaprbackend.security.service.UserService
+import java.time.LocalDateTime
 
 
 @Service
@@ -18,7 +19,7 @@ class DtoConverterService(
     private val voteService: VoteService,
     private val categoryService: CategoryService,
     private val sessionService: SessionService,
-    private val userService: UserService
+    private val userService: UserService,
 ) {
     fun userToDto(user: User): UserDto {
         return user.run { UserDto(id, username, email, roles.firstOrNull()?.name?.name ?: "No role") }
@@ -35,7 +36,7 @@ class DtoConverterService(
 
     fun roadMapToDto(roadMap: RoadMap): RoadMapDto {
         val votes = voteService.getVotesForRoadMap(roadMap.id ?: error("roadMap id is null"))
-        val likes = votes.filter { it.like }.count()
+        val likes = votes.filter { it.liked }.count()
         val dislikes = votes.size - likes
         return roadMap.run {
             RoadMapDto(
@@ -62,23 +63,38 @@ class DtoConverterService(
         return dto.run { User(username, email, "") }
     }
 
-    fun taskDtoToEntity(dto: TaskDto): Task {
-        return dto.run { Task(id, name, description, roadMapService.getCreatorForMapId(id ?: -1), url) }
+    fun taskDtoToEntity(dto: TaskDto, creator: User? = null): Task {
+        return dto.run { Task(id, name, description, creator ?: roadMapService.getCreatorForMapId(id ?: -1), url) }
     }
 
-    fun nodeDtoToEntity(dto: NodeDto): Node {
+    fun nodeDtoToEntity(dto: NodeDto, creator: User? = null): Node {
         return dto.run {
             Node(
                 id,
                 name,
                 description,
-                roadMapService.getCreatorForNodeId(id ?: -1),
-                tasks.map { taskDtoToEntity(it) }.toMutableList()
+                creator ?: roadMapService.getCreatorForNodeId(id ?: -1),
+                tasks.map { taskDtoToEntity(it, creator) }.toMutableList()
             )
         }
     }
 
     fun roadMapDtoToEntity(dto: RoadMapDto, creator: User? = null): RoadMap {
+        return dto.run {
+            RoadMap(
+                id,
+                name,
+                description,
+                creator ?: roadMapService.getCreatorForMapId(id ?: error("this roadmap doesn't have id")),
+                id?.let { roadMapService.getStatusFormapId(it) } ?: RoadMap.VerificationStatus.UNVERIFIED,
+                categoryService.getCategoryById(categoryId) ?: error("no category with id $categoryId"),
+                nodes.map { nodeDtoToEntity(it, creator) }.toMutableList()
+            )
+        }
+    }
+
+
+    fun newRoadMapDtoToEntity(dto: RoadMapDto, creator: User? = null): RoadMap {
         return dto.run {
             RoadMap(
                 id,
@@ -93,7 +109,7 @@ class DtoConverterService(
     }
 
     fun userTaskCompletionStateToDto(userTaskState: UserTaskCompletionState): UserTaskCompletionStateDto {
-        return userTaskState.run { UserTaskCompletionStateDto(id, taskToDto(task), state) }
+        return userTaskState.run { UserTaskCompletionStateDto(id, task.id ?: error("not persisted entity"), state) }
     }
 
     fun userMapCompletionStateToDto(userMapState: UserMapCompletionState): UserMapCompletionStateDto {
@@ -101,14 +117,19 @@ class DtoConverterService(
             UserMapCompletionStateDto(
                 id,
                 userToDto(user),
-                name,
                 tasksStates.map { userTaskCompletionStateToDto(it) }.toMutableList()
             )
         }
     }
 
     fun userTaskCompletionStateDtoToEntity(dto: UserTaskCompletionStateDto): UserTaskCompletionState {
-        return dto.run { UserTaskCompletionState(id, taskDtoToEntity(task), state) }
+        return dto.run {
+            UserTaskCompletionState(
+                id,
+                roadMapService.getTaskById(taskId) ?: error("no task with id $taskId"),
+                state
+            )
+        }
     }
 
     fun userMapCompletionStateDtoToEntity(dto: UserMapCompletionStateDto): UserMapCompletionState {
@@ -116,8 +137,7 @@ class DtoConverterService(
             UserMapCompletionState(
                 id,
                 userDtoToEntity(user),
-                name,
-                tasksStates.map { userTaskCompletionStateDtoToEntity(it) }.toMutableList()
+                tasksStates.map { userTaskCompletionStateDtoToEntity(it) }.toMutableSet()
             )
         }
     }
@@ -126,20 +146,30 @@ class DtoConverterService(
         return message.run { SessionChatMessageDto(id, userToDto(creator), timestamp, text) }
     }
 
-    fun sessionChatMessageDtoToEntity(dto: SessionChatMessageDto): SessionChatMessage {
-        return dto.run { SessionChatMessage(id, userDtoToEntity(creator), timestamp, text) }
+    fun sessionChatMessageDtoToEntity(dto: SessionChatMessageDto, overrideDate: Boolean = true): SessionChatMessage {
+        return dto.run {
+            SessionChatMessage(
+                id,
+                userDtoToEntity(creator),
+                if (!overrideDate && timestamp != null) timestamp else LocalDateTime.now(),
+                text
+            )
+        }
     }
 
     fun mapSessionToDto(session: MapSession): MapSessionDto {
         return session.run {
-            MapSessionDto(id,
+            MapSessionDto(
+                id,
                 userToDto(creator),
                 users.map { userMapCompletionStateToDto(it) },
                 public,
                 startDate,
                 state.id,
                 groupChatUrl,
-                messages.map { sessionChatMessageToDto(it) })
+                messages.map { sessionChatMessageToDto(it) },
+                roadMapToDto(session.roadMap)
+            )
         }
     }
 
@@ -153,7 +183,8 @@ class DtoConverterService(
                 startDate,
                 MapSession.State.getById(stateId),
                 groupChatUrl,
-                messages.map { sessionChatMessageDtoToEntity(it) }.toMutableList()
+                messages.map { sessionChatMessageDtoToEntity(it) }.toMutableList(),
+                roadMap = roadMapDtoToEntity(dto.roadMap, newCreator)
             )
         }
     }
@@ -163,12 +194,13 @@ class DtoConverterService(
             MapSession(
                 null,
                 creator,
-                listOf(),
+                mutableListOf(),
                 public,
                 startDate,
                 MapSession.State.LOBBY,
                 groupChatUrl,
-                mutableListOf()
+                mutableListOf(),
+                roadMap = roadMapService.getRoadMapById(dto.roadMapId) ?: error("no_such_roadmap")
             )
         }
     }

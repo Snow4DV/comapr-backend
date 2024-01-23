@@ -15,7 +15,7 @@ class VoteService(private val voteRepo: VoteRepository, private val mapRepo: Roa
     fun changeVoteToRoadMap(like: Boolean?, roadMapId: Long, voterId: Long) {
         like?.let {
             val map = mapRepo.findByIdOrNull(roadMapId) ?: error("no_such_roadmap")
-            val vote = voteRepo.findVoteByVoterIdAndRoadmapId(voterId, roadMapId)
+            val vote = voteRepo.findVoteByVoterIdAndRoadmapId(voterId, roadMapId)?.apply { liked = like }
                 ?: Vote(null, map, userService.getUserById(voterId) ?: error("no_such_user"), like)
             voteRepo.save(vote)
         } ?: run {

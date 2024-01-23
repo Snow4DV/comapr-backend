@@ -17,5 +17,5 @@ class Vote( // vote by user for roadmap
     @ManyToOne
     val voter: User,
 
-    var like: Boolean
+    var liked: Boolean
 )

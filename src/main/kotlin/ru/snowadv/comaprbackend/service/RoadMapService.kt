@@ -132,7 +132,7 @@ class RoadMapService(
 
             status != null -> mapRepo.findAllByStatusIsOrderByName(status)
             categoryId != null -> mapRepo.findAllByCategoryIdOrderByName(categoryId)
-            else -> emptyList()
+            else -> mapRepo.findAllBy()
         }
     }
 

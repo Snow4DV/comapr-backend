@@ -25,6 +25,7 @@ import ru.snowadv.comaprbackend.repository.UserRepository
 import ru.snowadv.comaprbackend.security.jwt.JwtUtils
 import ru.snowadv.comaprbackend.security.service.UserDetailsImpl
 import ru.snowadv.comaprbackend.security.service.UserService
+import ru.snowadv.comaprbackend.service.CategoryService
 import ru.snowadv.comaprbackend.service.DtoConverterService
 import ru.snowadv.comaprbackend.service.RoadMapService
 import ru.snowadv.comaprbackend.service.VoteService
@@ -38,7 +39,8 @@ import java.util.stream.Collectors
 @RequestMapping("/api/v1/roadmap")
 class RoadMapController(
     private val roadMapService: RoadMapService, private val voteService: VoteService,
-    private val userService: UserService, private val converter: DtoConverterService
+    private val userService: UserService, private val converter: DtoConverterService,
+    private val categoryService: CategoryService
 ) {
 
 

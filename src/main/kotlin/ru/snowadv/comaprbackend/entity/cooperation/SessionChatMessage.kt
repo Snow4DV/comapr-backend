@@ -14,6 +14,6 @@ class SessionChatMessage(
 
     @ManyToOne
     val creator: User,
-    val timestamp: LocalDateTime,
+    val timestamp: LocalDateTime = LocalDateTime.now(),
     val text: String
 )

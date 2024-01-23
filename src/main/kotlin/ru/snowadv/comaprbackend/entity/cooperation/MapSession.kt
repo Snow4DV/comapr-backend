@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size
 import org.hibernate.validator.constraints.URL
 import org.springframework.data.annotation.CreatedDate
 import ru.snowadv.comaprbackend.entity.User
+import ru.snowadv.comaprbackend.entity.roadmap.RoadMap
 import java.time.LocalDateTime
 
 @Entity
@@ -29,12 +30,15 @@ class MapSession(
 
     var groupChatUrl: String?,
 
-    @OneToMany
+    @OneToMany(cascade = [CascadeType.ALL])
     val messages: MutableList<SessionChatMessage> = mutableListOf(),
 
     @CreatedDate
     @Column(name = "created_at")
     val createdDate: LocalDateTime = LocalDateTime.now(),
+
+    @ManyToOne
+    val roadMap: RoadMap
 ) {
     enum class State(val id: Int) {
         LOBBY(0), STARTED(1), FINISHED(2);

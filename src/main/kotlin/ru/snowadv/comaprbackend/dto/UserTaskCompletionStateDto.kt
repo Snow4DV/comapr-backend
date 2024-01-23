@@ -8,6 +8,6 @@ import ru.snowadv.comaprbackend.entity.roadmap.Task
 
 class UserTaskCompletionStateDto(
     var id: Long? = null,
-    val task: TaskDto,
+    val taskId: Long,
     var state: Boolean = false
 )

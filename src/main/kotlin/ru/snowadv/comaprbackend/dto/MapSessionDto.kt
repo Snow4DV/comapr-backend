@@ -10,5 +10,6 @@ class MapSessionDto(
     val startDate: LocalDateTime,
     val stateId: Int, // State.class
     val groupChatUrl: String?,
-    val messages: List<SessionChatMessageDto> = listOf()
+    val messages: List<SessionChatMessageDto> = listOf(),
+    val roadMap: RoadMapDto
 )

@@ -11,12 +11,16 @@ import ru.snowadv.comaprbackend.repository.CategoryRepository
 @Service
 class CategoryService(val categoryRepository: CategoryRepository) {
 
-    fun createNewCategory(name: String) {
+    fun getAllCategories(): List<Category> {
+        return categoryRepository.findAllBy()
+    }
+    fun createNewCategory(name: String): Boolean {
         if (categoryRepository.findByName(name) != null) {
-            throw DuplicateException("category")
+            return false
         }
 
         categoryRepository.save(Category(name = name))
+        return true
     }
 
     fun updateCategory(id: Long, name: String) {

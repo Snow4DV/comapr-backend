@@ -22,20 +22,17 @@ class SessionService(private val repo: SessionRepository, private val roadMapSer
         return repo.findByIdOrNull(id)
     }
 
-    fun startSession(id: Long): Boolean {
+    fun startSession(id: Long): MapSession? {
         val session = repo.findByIdOrNull(id) ?: throw NoSuchEntityException("session", id)
-        if(session.state != MapSession.State.LOBBY) return false
+        if(session.state != MapSession.State.LOBBY) return null
         session.state = MapSession.State.STARTED
-        updateSession(session)
-        return true
+        return updateSession(session)
     }
 
-    fun endSession(id: Long): Boolean {
+    fun endSession(id: Long): MapSession? {
         val session = repo.findByIdOrNull(id) ?: throw NoSuchEntityException("session", id)
-        if(session.state != MapSession.State.STARTED) return false
-        session.state = MapSession.State.STARTED
-        updateSession(session)
-        return true
+        session.state = MapSession.State.FINISHED
+        return updateSession(session)
     }
 
     fun joinSession(id: Long, user: User): Boolean {
@@ -49,7 +46,7 @@ class SessionService(private val repo: SessionRepository, private val roadMapSer
 
     fun leaveSession(id: Long, user: User): Boolean {
         val session = repo.findByIdOrNull(id) ?: throw NoSuchEntityException("session", id)
-        if(!session.users.any { it.id == user.id }) return false
+        if(!session.users.any { it.user.id == user.id }) return false
         session.users.removeIf { it.user == user }
         updateSession(session)
         return true
@@ -57,9 +54,13 @@ class SessionService(private val repo: SessionRepository, private val roadMapSer
 
     fun markTask(id: Long, taskId: Long, userId: Long, newState: Boolean): Boolean {
         val session = repo.findByIdOrNull(id) ?: throw NoSuchEntityException("session", id)
-        val task = session.users.first { it.user.id == userId }.tasksStates.firstOrNull { it.task.id == taskId }
+        val userState = session.users.first { it.user.id == userId }
+        val userTasks = userState.tasksStates
+        val task = userTasks.firstOrNull { it.task.id == taskId }
             ?: UserTaskCompletionState(task = roadMapService.getTaskById(taskId) ?: return false, state = newState)
         task.state = newState
+
+        userTasks.add(task)
         updateSession(session)
         return true
     }
@@ -69,18 +70,24 @@ class SessionService(private val repo: SessionRepository, private val roadMapSer
         return repo.findByIdOrNull(id)?.creator
     }
 
-    fun createSession(session: MapSession) {
-        if(repo.findByIdOrNull(session.id) != null) throw DuplicateException("session")
-        repo.save(session)
+    fun createSession(session: MapSession): MapSession {
+        if(session.id != null && repo.findByIdOrNull(session.id) != null) throw DuplicateException("session")
+        session.users.add(
+            UserMapCompletionState(
+            id = null,
+            user = session.creator
+        )
+        )
+        return repo.save(session)
     }
 
-    fun updateSession(session: MapSession) {
+    fun updateSession(session: MapSession): MapSession {
         val initSession = repo.findByIdOrNull(session.id) ?: throw NoSuchEntityException("session", session.id)
-        repo.save(session)
+        return repo.save(session)
     }
 
 
-    fun getPublicSessions(): List<MapSession> {
-        return repo.findAllByPublicIsTrue()
+    fun getPublicSessions(state: MapSession.State): List<MapSession> {
+        return repo.findAllByPublicIsTrueAndStateIs(state = state)
     }
 }

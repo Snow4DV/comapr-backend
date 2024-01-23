@@ -8,6 +8,5 @@ import ru.snowadv.comaprbackend.entity.User
 class UserMapCompletionStateDto(
     var id: Long? = null,
     var user: UserDto,
-    var name: String,
     val tasksStates: MutableList<UserTaskCompletionStateDto> = mutableListOf()
 )

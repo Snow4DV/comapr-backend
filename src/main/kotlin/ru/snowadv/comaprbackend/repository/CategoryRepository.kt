@@ -9,4 +9,5 @@ import ru.snowadv.comaprbackend.entity.roadmap.Node
 @Repository
 interface CategoryRepository : JpaRepository<Category?, Long?> {
     fun findByName(name: String): Category?
+    fun findAllBy(): List<Category>
 }
