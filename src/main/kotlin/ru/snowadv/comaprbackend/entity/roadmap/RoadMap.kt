@@ -43,7 +43,7 @@ class RoadMap( // stores nodes that store tasks
         HIDDEN(0), UNVERIFIED(1), COMMUNITY_CHOICE(2), VERIFIED(3);
         companion object {
             fun fromId(id: Int): VerificationStatus {
-                return values().find { it.id == id } ?: error("no status with id $id")
+                return entries.find { it.id == id } ?: error("no status with id $id")
             }
         }
     }

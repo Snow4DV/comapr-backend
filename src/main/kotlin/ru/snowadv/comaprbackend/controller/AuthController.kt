@@ -119,7 +119,7 @@ class AuthController(
         val newUser = userRepository.save(user)
 
         val authentication = authenticationManager.authenticate(
-            UsernamePasswordAuthenticationToken(user.username, user.password)
+            UsernamePasswordAuthenticationToken(signUpRequest.username, signUpRequest.password)
         )
 
         SecurityContextHolder.getContext().authentication = authentication
@@ -139,7 +139,7 @@ class AuthController(
     }
 
 
-    @GetMapping("/authenticate")
+    @PostMapping("/authenticate")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_USER')")
     fun checkAuth(@RequestHeader("Authorization") authorizationHeader: String?): ResponseEntity<Any> {
         val user = SecurityContextHolder.getContext().currentUserIdOrNull()?.let { userService.getUserById(it) }

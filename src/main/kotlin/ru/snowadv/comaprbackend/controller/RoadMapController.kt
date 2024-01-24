@@ -10,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.*
+import ru.snowadv.comaprbackend.dto.CategorizedRoadMapsDto
 import ru.snowadv.comaprbackend.dto.RoadMapDto
 import ru.snowadv.comaprbackend.entity.ERole
 import ru.snowadv.comaprbackend.entity.Role
@@ -55,11 +56,11 @@ class RoadMapController(
 
 
     @GetMapping("list")
-    fun fetchMaps(@RequestParam statusId: Int?, @RequestParam categoryId: Long?): ResponseEntity<List<RoadMapDto>> {
+    fun fetchMaps(@RequestParam statusId: Int?, @RequestParam categoryId: Long?): ResponseEntity<List<CategorizedRoadMapsDto>> {
         val maps = roadMapService.getRoadMapsWithStatusAndOrCategory(statusId, categoryId).map {
             converter.roadMapToDto(it)
         }
-        return ResponseEntity.ok(maps)
+        return ResponseEntity.ok(converter.roadMapDtoListToCategorizedRoadMapsDtoList(maps))
     }
 
 

@@ -11,6 +11,8 @@ import ru.snowadv.comaprbackend.entity.roadmap.*
 import ru.snowadv.comaprbackend.exception.NoSuchEntityException
 import ru.snowadv.comaprbackend.security.service.UserService
 import java.time.LocalDateTime
+import java.util.HashMap
+import java.util.TreeMap
 
 
 @Service
@@ -47,7 +49,8 @@ class DtoConverterService(
                 nodes.map { nodeToDto(it) },
                 likes,
                 dislikes,
-                category.name
+                category.name,
+                roadMap.status.id
             )
         }
     }
@@ -214,5 +217,18 @@ class DtoConverterService(
             prevSession.startDate = startDate
             prevSession
         }
+    }
+
+    fun roadMapDtoListToCategorizedRoadMapsDtoList(maps: List<RoadMapDto>): List<CategorizedRoadMapsDto> {
+        val hashMap = HashMap<Long, CategorizedRoadMapsDto>()
+        maps.forEach { roadMap ->
+            if(hashMap[roadMap.categoryId] == null) {
+                hashMap[roadMap.categoryId] = CategorizedRoadMapsDto(roadMap.categoryName, roadMap.categoryId)
+            }
+            hashMap[roadMap.categoryId]?.roadMaps?.add(roadMap)
+        }
+
+        return hashMap.values.sortedBy { it.categoryName }
+
     }
 }
