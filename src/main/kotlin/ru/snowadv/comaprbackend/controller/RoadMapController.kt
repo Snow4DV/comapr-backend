@@ -82,8 +82,8 @@ class RoadMapController(
         val map =
             roadMapService.getRoadMapById(id) ?: return ResponseEntity.badRequest().body(MessageResponse("no_such_map"))
         map.status = status
-        roadMapService.update(map)
-        return ResponseEntity.ok(MessageResponse("success"))
+        val updated = roadMapService.update(map)
+        return ResponseEntity.ok(converter.roadMapToDto(updated))
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
@@ -93,10 +93,11 @@ class RoadMapController(
         if (map.deepCheckCreator(SecurityContextHolder.getContext().currentUserIdOrNull() ?: -1)) {
             return ResponseEntity.status(403).body(MessageResponse("no_permission_to_update"))
         }
-        return if(!roadMapService.updateKeepCreatorAndStatus(map)) {
+        val updated = roadMapService.updateKeepCreatorAndStatus(map)
+        return if(updated == null) {
             ResponseEntity.status(403).body(MessageResponse("name_already_used"))
         } else {
-            ResponseEntity.ok(MessageResponse("success"))
+            ResponseEntity.ok(updated)
         }
 
     }
@@ -111,10 +112,11 @@ class RoadMapController(
                     .body(MessageResponse("not_authorized"))
             )
         )
-        return if (!roadMapService.createNew(map)) {
+        val created = roadMapService.createNew(map)
+        return if (created == null) {
             ResponseEntity.status(403).body(MessageResponse("name_already_used"))
         } else {
-            ResponseEntity.ok(MessageResponse("success"))
+            ResponseEntity.ok(converter.roadMapToDto(created))
         }
 
     }

@@ -46,7 +46,8 @@ class DtoConverterService(
                 category.id ?: throw IllegalStateException("category with no id"),
                 nodes.map { nodeToDto(it) },
                 likes,
-                dislikes
+                dislikes,
+                category.name
             )
         }
     }

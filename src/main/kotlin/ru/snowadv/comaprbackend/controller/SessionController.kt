@@ -40,7 +40,7 @@ class SessionController(
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
         if (user == null || (!session.public && !(session.creator == user || session.users.any { it.user == user }))) {
-            return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+            return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         }
         return ResponseEntity.ok(converter.mapSessionToDto(session))
     }
@@ -63,12 +63,12 @@ class SessionController(
     @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping("/{id}/update")
     fun updateSession(@RequestBody dto: ClearMapSessionDto, @PathVariable id: Long): ResponseEntity<Any> {
-        val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         val oldSession = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
         if (oldSession.state != MapSession.State.LOBBY) return ResponseEntity.status(403)
             .body(MessageResponse("session_already_started"))
-        if (oldSession.creator.id != user.id) return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        if (oldSession.creator.id != user.id) return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         sessionService.updateSession(converter.updateSessionDtoToEntity(id, dto, user))
         return ResponseEntity.ok(MessageResponse("success"))
     }
@@ -90,7 +90,7 @@ class SessionController(
     @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping("/{id}/join")
     fun joinSession(@PathVariable id: Long): ResponseEntity<Any> {
-        val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
         if (session.creator.id == user.id || session.users.any { it.user == user }) return ResponseEntity.status(403)
@@ -108,7 +108,7 @@ class SessionController(
     @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping("/{id}/leave")
     fun leaveSession(@PathVariable id: Long): ResponseEntity<Any> {
-        val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
         if (session.state != MapSession.State.LOBBY) {
@@ -135,7 +135,7 @@ class SessionController(
         @PathVariable id: Long,
         @RequestBody message: NewSessionChatMessageDto
     ): ResponseEntity<Any> {
-        val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
         if (session.creator.id != user.id && !session.users.any { it.user == user }) return ResponseEntity.status(403)
@@ -154,7 +154,7 @@ class SessionController(
         @PathVariable taskId: Long,
         @RequestParam state: Boolean
     ): ResponseEntity<Any> {
-        val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
         if (session.creator.id != user.id && !session.users.any { it.user == user }) return ResponseEntity.status(403)
@@ -162,22 +162,22 @@ class SessionController(
         if (session.state != MapSession.State.STARTED) {
             return ResponseEntity.status(403).body(MessageResponse("session_not_started"))
         }
-        if (!sessionService.markTask(
-                id,
-                taskId,
-                user.id ?: error("not full user"),
-                state
-            )
-        ) return ResponseEntity.status(403).body(MessageResponse("cant_mark"))
-        return ResponseEntity.ok(MessageResponse("success"))
+        val newSession = sessionService.markTask(
+            id,
+            taskId,
+            user.id ?: error("not full user"),
+            state
+        )
+        if (newSession == null) return ResponseEntity.status(403).body(MessageResponse("cant_mark"))
+        return ResponseEntity.ok(converter.mapSessionToDto(newSession))
     }
 
 
     private fun changeSessionState(start: Boolean, id: Long): ResponseEntity<Any> {
-        val user = getCurrentUser() ?: return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
-        if (session.creator.id != user.id) return ResponseEntity.status(403).body(MessageResponse("not_authorized"))
+        if (session.creator.id != user.id) return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         if (start && sessionService.startSession(session.id ?: -1) == null || !start && sessionService.endSession(
                 session.id ?: -1
             ) == null

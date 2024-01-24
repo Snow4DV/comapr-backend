@@ -4,6 +4,7 @@ package ru.snowadv.comaprbackend.controller
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
@@ -20,6 +21,9 @@ import ru.snowadv.comaprbackend.repository.RoleRepository
 import ru.snowadv.comaprbackend.repository.UserRepository
 import ru.snowadv.comaprbackend.security.jwt.JwtUtils
 import ru.snowadv.comaprbackend.security.service.UserDetailsImpl
+import ru.snowadv.comaprbackend.security.service.UserService
+import ru.snowadv.comaprbackend.utils.currentUserDetailsOrNull
+import ru.snowadv.comaprbackend.utils.currentUserIdOrNull
 import java.util.function.Consumer
 import java.util.stream.Collectors
 
@@ -31,7 +35,8 @@ class AuthController(
     val userRepository: UserRepository,
     val roleRepository: RoleRepository,
     val encoder: PasswordEncoder,
-    val jwtUtils: JwtUtils
+    val jwtUtils: JwtUtils,
+    val userService: UserService
 ) {
     @PostMapping("/signin")
     fun authenticateUser(@RequestBody loginRequest: @Valid LoginRequest?): ResponseEntity<JwtResponse> {
@@ -111,8 +116,36 @@ class AuthController(
         }
 
         user.roles = roles
-        userRepository.save(user)
+        val newUser = userRepository.save(user)
 
-        return ResponseEntity.ok(MessageResponse("User registered successfully!"))
+        val authentication = authenticationManager.authenticate(
+            UsernamePasswordAuthenticationToken(user.username, user.password)
+        )
+
+        SecurityContextHolder.getContext().authentication = authentication
+        val jwt: String = jwtUtils.generateJwtToken(authentication)
+
+
+        return ResponseEntity.ok(
+            JwtResponse(
+                jwt,
+                newUser.id!!,
+                newUser.username,
+                newUser.email,
+                newUser.roles
+                    .map { it.name.name }
+            )
+        )
     }
+
+
+    @GetMapping("/authenticate")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_USER')")
+    fun checkAuth(@RequestHeader("Authorization") authorizationHeader: String?): ResponseEntity<Any> {
+        val user = SecurityContextHolder.getContext().currentUserIdOrNull()?.let { userService.getUserById(it) }
+        val token = authorizationHeader?.let { if(it.length < 8) null else it.substring(7) }
+        if(token == null || user == null) return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
+        return ResponseEntity.ok(JwtResponse(token, user.id ?: error("user has no id"), user.username, user.email, user.roles.map { it.name.name }))
+    }
+
 }

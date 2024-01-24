@@ -79,38 +79,36 @@ class RoadMapService(
         nodeRepo.delete(node)
     }
 
-    fun update(map: RoadMap) {
+    fun update(map: RoadMap): RoadMap {
         if (mapRepo.findByIdOrNull(map.id ?: -1L) == null) {
             throw NoSuchElementException("Such map doesn't exist (with id ${map.id})")
         }
 
-        mapRepo.save(map)
+        return mapRepo.save(map)
     }
 
-    fun updateKeepCreatorAndStatus(map: RoadMap): Boolean {
+    fun updateKeepCreatorAndStatus(map: RoadMap): RoadMap? {
         val oldMap = mapRepo.findByIdOrNull(map.id ?: -1L)
             ?: throw NoSuchElementException("Such map doesn't exist (with id ${map.id})")
         if (map.status != oldMap.status || map.creator.id != oldMap.creator.id) throw IllegalArgumentException("map has different status and/or creator")
 
         if (mapRepo.findByName(map.name) != null) {
-            return false
+            return null
         }
 
-        mapRepo.save(map)
-        return true
+        return mapRepo.save(map)
     }
 
 
-    fun createNew(map: RoadMap): Boolean {
+    fun createNew(map: RoadMap): RoadMap? {
         if (mapRepo.findByIdOrNull(map.id ?: -1L) != null) {
-            return false
+            return null
         }
         if (mapRepo.findByName(map.name) != null) {
             throw NoSuchElementException("Such map already exists (with id ${map.id})")
         }
 
-        mapRepo.save(map)
-        return true
+        return mapRepo.save(map)
     }
 
     fun delete(mapId: Long) {

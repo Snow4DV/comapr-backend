@@ -14,13 +14,12 @@ class CategoryService(val categoryRepository: CategoryRepository) {
     fun getAllCategories(): List<Category> {
         return categoryRepository.findAllBy()
     }
-    fun createNewCategory(name: String): Boolean {
+    fun createNewCategory(name: String): Category? {
         if (categoryRepository.findByName(name) != null) {
-            return false
+            return null
         }
 
-        categoryRepository.save(Category(name = name))
-        return true
+        return categoryRepository.save(Category(name = name))
     }
 
     fun updateCategory(id: Long, name: String) {

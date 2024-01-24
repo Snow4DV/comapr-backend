@@ -50,20 +50,17 @@ class CategoryController(
 
     @GetMapping("/{id}")
     fun getCategory(@PathVariable id: Long): ResponseEntity<Any> {
-        val category = categoryService.getCategoryById(id) ?: return ResponseEntity.status(403).body(MessageResponse("not_found"))
+        val category =
+            categoryService.getCategoryById(id) ?: return ResponseEntity.status(403).body(MessageResponse("not_found"))
         return ResponseEntity.ok(category)
     }
 
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MODERATOR')")
     @PostMapping("create")
     fun createCategory(@RequestBody dto: CategoryDto): ResponseEntity<Any> {
-        return if(categoryService.createNewCategory(dto.name)) {
-            ResponseEntity.ok(MessageResponse("created"))
-        } else {
-            ResponseEntity.status(409).body(MessageResponse("already_exists"))
-        }
+        return categoryService.createNewCategory(dto.name)?.let { ResponseEntity.ok(it) } ?: ResponseEntity.status(409)
+            .body(MessageResponse("already_exists"))
     }
-
 
 
 }
