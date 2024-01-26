@@ -89,4 +89,9 @@ class SessionService(private val repo: SessionRepository, private val roadMapSer
     fun getPublicSessions(state: MapSession.State): List<MapSession> {
         return repo.findAllByPublicIsTrueAndStateIs(state = state)
     }
+
+
+    fun getAllSessionsByUser(id: Long): List<MapSession> {
+        return repo.findAllSessionsByUser(id)
+    }
 }

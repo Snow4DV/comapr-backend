@@ -14,6 +14,6 @@ class RoadMapDto(
     var nodes: List<NodeDto> = mutableListOf(),
     val likes: Int? = null,
     val dislikes: Int? = null,
-    val categoryName: String,
-    val statusId: Int
+    val categoryName: String = "",
+    val statusId: Int = 0
 )
