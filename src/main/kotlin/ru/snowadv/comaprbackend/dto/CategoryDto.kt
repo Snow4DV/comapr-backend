@@ -6,7 +6,7 @@ import ru.snowadv.comaprbackend.entity.User
 import ru.snowadv.comaprbackend.entity.roadmap.Category
 import ru.snowadv.comaprbackend.entity.roadmap.Node
 
-class CategoryDto(
+data class CategoryDto(
     val id: Long?,
     val name: String
 )

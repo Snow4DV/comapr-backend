@@ -55,6 +55,10 @@ class DtoConverterService(
         }
     }
 
+    fun roadMapToSimpleDto(roadmap: RoadMap): SimpleRoadMapDto? {
+        return roadmap.id?.let { SimpleRoadMapDto(it, roadmap.name) }
+    }
+
     fun categoryToDto(category: Category): CategoryDto {
         return category.run { CategoryDto(id, name) }
     }
@@ -161,7 +165,7 @@ class DtoConverterService(
         }
     }
 
-    fun mapSessionToDto(session: MapSession): MapSessionDto {
+    fun mapSessionToDto(session: MapSession, currentUser: User? = null): MapSessionDto {
         return session.run {
             MapSessionDto(
                 id,
@@ -172,7 +176,8 @@ class DtoConverterService(
                 state.id,
                 groupChatUrl,
                 messages.map { sessionChatMessageToDto(it) },
-                roadMapToDto(session.roadMap)
+                roadMapToDto(session.roadMap),
+                users.any { it.user.id != null && it.user.id == currentUser?.id }
             )
         }
     }

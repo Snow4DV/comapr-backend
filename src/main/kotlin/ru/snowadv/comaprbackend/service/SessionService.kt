@@ -44,12 +44,11 @@ class SessionService(private val repo: SessionRepository, private val roadMapSer
     }
 
 
-    fun leaveSession(id: Long, user: User): Boolean {
+    fun leaveSession(id: Long, user: User): MapSession? {
         val session = repo.findByIdOrNull(id) ?: throw NoSuchEntityException("session", id)
-        if(!session.users.any { it.user.id == user.id }) return false
+        if(!session.users.any { it.user.id == user.id }) return null
         session.users.removeIf { it.user == user }
-        updateSession(session)
-        return true
+        return updateSession(session)
     }
 
     fun markTask(id: Long, taskId: Long, userId: Long, newState: Boolean): MapSession? {

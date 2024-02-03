@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.*
 import ru.snowadv.comaprbackend.dto.CategorizedRoadMapsDto
 import ru.snowadv.comaprbackend.dto.RoadMapDto
+import ru.snowadv.comaprbackend.dto.SimpleRoadMapDto
 import ru.snowadv.comaprbackend.entity.ERole
 import ru.snowadv.comaprbackend.entity.Role
 import ru.snowadv.comaprbackend.entity.User
@@ -64,8 +65,17 @@ class RoadMapController(
     }
 
 
+    @GetMapping("namesList")
+    fun fetchMapsNames(@RequestParam statusId: Int?, @RequestParam categoryId: Long?): ResponseEntity<List<SimpleRoadMapDto>> {
+        val maps = roadMapService.getRoadMapsWithStatusAndOrCategory(statusId, categoryId).map {
+            converter.roadMapToSimpleDto(it)
+        }.filterNotNull()
+        return ResponseEntity.ok(maps)
+    }
+
+
     @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("vote")
+    @PutMapping("vote")
     fun voteForRoadmap(@RequestParam id: Long, @RequestParam like: Boolean?): ResponseEntity<Any> {
         voteService.changeVoteToRoadMap(
             like, id,
@@ -77,7 +87,7 @@ class RoadMapController(
 
 
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MODERATOR')")
-    @PostMapping("changeStatus")
+    @PutMapping("changeStatus")
     fun changeVerificationStatus(@RequestParam id: Long, statusId: Int): ResponseEntity<Any> {
         val status = RoadMap.VerificationStatus.fromId(statusId)
         val map =
@@ -88,7 +98,7 @@ class RoadMapController(
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("update")
+    @PutMapping("update")
     fun updateRoadMap(@RequestBody dto: RoadMapDto): ResponseEntity<Any> {
         val map = converter.roadMapDtoToEntity(dto)
         if (map.deepCheckCreator(SecurityContextHolder.getContext().currentUserIdOrNull() ?: -1)) {

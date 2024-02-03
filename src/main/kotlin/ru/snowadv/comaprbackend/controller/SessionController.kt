@@ -42,7 +42,7 @@ class SessionController(
         if (user == null || (!session.public && !(session.creator == user || session.users.any { it.user == user }))) {
             return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         }
-        return ResponseEntity.ok(converter.mapSessionToDto(session))
+        return ResponseEntity.ok(converter.mapSessionToDto(session, user))
     }
 
 
@@ -57,7 +57,7 @@ class SessionController(
             .body(MessageResponse("no_such_roadmap"))
         if (mapSession.creator.id != user.id) return ResponseEntity.status(403).body(MessageResponse("unauthorized"))
         val savedSession = sessionService.createSession(mapSession)
-        return ResponseEntity.ok(converter.mapSessionToDto(savedSession))
+        return ResponseEntity.ok(converter.mapSessionToDto(savedSession, user))
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
@@ -69,8 +69,8 @@ class SessionController(
         if (oldSession.state != MapSession.State.LOBBY) return ResponseEntity.status(403)
             .body(MessageResponse("session_already_started"))
         if (oldSession.creator.id != user.id) return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
-        sessionService.updateSession(converter.updateSessionDtoToEntity(id, dto, user))
-        return ResponseEntity.ok(MessageResponse("success"))
+        val updatedSession = sessionService.updateSession(converter.updateSessionDtoToEntity(id, dto, user))
+        return ResponseEntity.ok(converter.mapSessionToDto(updatedSession, user))
     }
 
 
@@ -115,17 +115,18 @@ class SessionController(
             return ResponseEntity.status(403).body(MessageResponse("session_already_started_or_finished"))
         }
 
-        if (session.creator.id == user.id) {
-            sessionService.endSession(session.id ?: error("no_such_session"))
+        val resSession = if (session.creator.id == user.id) {
+            sessionService.endSession(session.id ?: error("no_such_session")) ?: return ResponseEntity.status(403)
+                .body(MessageResponse("could_not_end_session"))
         } else if (session.users.any { it.user == user }) {
-            if (!sessionService.leaveSession(id, user)) return ResponseEntity.status(403)
+            sessionService.leaveSession(id, user) ?: return ResponseEntity.status(403)
                 .body(MessageResponse("not_in_session"))
         } else {
             return ResponseEntity.status(403).body(MessageResponse("not_in_session"))
         }
 
 
-        return ResponseEntity.ok(MessageResponse("success"))
+        return ResponseEntity.ok(converter.mapSessionToDto(resSession, user))
     }
 
 
@@ -143,8 +144,8 @@ class SessionController(
 
         val newMessage = SessionChatMessage(creator = user, text = message.text)
         session.messages.add(newMessage)
-        sessionService.updateSession(session)
-        return ResponseEntity.ok(MessageResponse("success"))
+        val messages = sessionService.updateSession(session).messages.map { converter.sessionChatMessageToDto(it) }
+        return ResponseEntity.ok(messages)
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
@@ -178,15 +179,15 @@ class SessionController(
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
             .body(MessageResponse("such_session_doesnt_exist"))
         if (session.creator.id != user.id) return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
-        if (start && sessionService.startSession(session.id ?: -1) == null || !start && sessionService.endSession(
-                session.id ?: -1
-            ) == null
-        ) {
-            return ResponseEntity.status(403).body(MessageResponse("cant_start_or_end_session"))
-        }
-        return ResponseEntity.ok(MessageResponse("success"))
-    }
 
+        val resSession = if (start) {
+            sessionService.startSession(session.id ?: -1)
+        } else {
+            sessionService.endSession(session.id ?: -1)
+        } ?: return ResponseEntity.status(403).body(MessageResponse("cant_start_or_end_session"))
+
+        return ResponseEntity.ok(converter.mapSessionToDto(resSession, user))
+    }
 
     private fun getCurrentUser(): User? {
         return userService.getUserById(

@@ -5,6 +5,6 @@ import jakarta.validation.constraints.Size
 import ru.snowadv.comaprbackend.entity.User
 import java.time.LocalDateTime
 
-class NewSessionChatMessageDto(
+data class NewSessionChatMessageDto(
     val text: String
 )

@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size
 
 
 
-class UserDto(
+data class UserDto(
     val id: Long?,
     val username: String,
     val email: String,

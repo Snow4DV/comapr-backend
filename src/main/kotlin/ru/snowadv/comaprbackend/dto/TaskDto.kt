@@ -6,7 +6,7 @@ import jakarta.persistence.Id
 import jakarta.validation.constraints.Size
 import org.hibernate.validator.constraints.URL
 
-class TaskDto(
+data class TaskDto(
     val id: Long?,
     val name: String,
     val description: String?,

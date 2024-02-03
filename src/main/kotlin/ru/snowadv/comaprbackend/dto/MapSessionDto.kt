@@ -2,7 +2,7 @@ package ru.snowadv.comaprbackend.dto
 
 import java.time.LocalDateTime
 
-class MapSessionDto(
+data class MapSessionDto(
     val id: Long? = null,
     val creator: UserDto,
     val users: List<UserMapCompletionStateDto>,
@@ -11,5 +11,6 @@ class MapSessionDto(
     val stateId: Int, // State.class
     val groupChatUrl: String?,
     val messages: List<SessionChatMessageDto> = listOf(),
-    val roadMap: RoadMapDto
+    val roadMap: RoadMapDto,
+    val joined: Boolean = false
 )

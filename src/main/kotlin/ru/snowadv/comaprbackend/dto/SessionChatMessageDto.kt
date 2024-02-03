@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size
 import ru.snowadv.comaprbackend.entity.User
 import java.time.LocalDateTime
 
-class SessionChatMessageDto(
+data class SessionChatMessageDto(
     var id: Long? = null,
     val creator: UserDto,
     val timestamp: LocalDateTime?,
