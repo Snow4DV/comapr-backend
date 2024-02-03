@@ -42,7 +42,8 @@ class SessionController(
         if (user == null || (!session.public && !(session.creator == user || session.users.any { it.user == user }))) {
             return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         }
-        return ResponseEntity.ok(converter.mapSessionToDto(session, user))
+        val convertedToDto = converter.mapSessionToDto(session, user)
+        return ResponseEntity.ok(convertedToDto)
     }
 
 
@@ -101,7 +102,7 @@ class SessionController(
 
         if (!sessionService.joinSession(id, user)) return ResponseEntity.status(403)
             .body(MessageResponse("already_joined"))
-        return ResponseEntity.ok(converter.mapSessionToDto(session))
+        return ResponseEntity.ok(converter.mapSessionToDto(session, user))
     }
 
 
@@ -170,7 +171,8 @@ class SessionController(
             state
         )
         if (newSession == null) return ResponseEntity.status(403).body(MessageResponse("cant_mark"))
-        return ResponseEntity.ok(converter.mapSessionToDto(newSession))
+        val converted = converter.mapSessionToDto(newSession, user)
+        return ResponseEntity.ok(converted)
     }
 
 

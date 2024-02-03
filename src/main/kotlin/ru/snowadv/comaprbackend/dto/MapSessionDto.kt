@@ -12,5 +12,7 @@ data class MapSessionDto(
     val groupChatUrl: String?,
     val messages: List<SessionChatMessageDto> = listOf(),
     val roadMap: RoadMapDto,
-    val joined: Boolean = false
+    val joined: Boolean = false,
+    val isCreator: Boolean = false,
+    val finishedTasksIds: List<Long> = emptyList()
 )
