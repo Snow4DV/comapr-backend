@@ -179,7 +179,7 @@ class DtoConverterService(
                 roadMapToDto(session.roadMap),
                 users.any { it.user.id != null && it.user.id == currentUser?.id },
                 (currentUser != null && currentUser.id == creator.id),
-                users.firstOrNull { it.id != null && it.id == currentUser?.id }?.tasksStates?.filter { it.state }
+                users.firstOrNull { it.user.id != null && it.user.id == currentUser?.id }?.tasksStates?.filter { it.state }
                     ?.mapNotNull { it.task.id } ?: emptyList()
             )
         }
