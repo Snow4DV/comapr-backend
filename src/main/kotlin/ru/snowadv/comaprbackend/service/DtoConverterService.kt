@@ -11,8 +11,7 @@ import ru.snowadv.comaprbackend.entity.roadmap.*
 import ru.snowadv.comaprbackend.exception.NoSuchEntityException
 import ru.snowadv.comaprbackend.security.service.UserService
 import java.time.LocalDateTime
-import java.util.HashMap
-import java.util.TreeMap
+import kotlin.collections.HashMap
 
 
 @Service
@@ -27,16 +26,16 @@ class DtoConverterService(
         return user.run { UserDto(id, username, email, roles.firstOrNull()?.name?.name ?: "No role") }
     }
 
-    fun taskToDto(task: Task): TaskDto {
-        return task.run { TaskDto(id, name, description, url) }
+    fun taskToDto(task: Task, taskIdToUserIds: Map<Long, List<Long>>? = null): TaskDto {
+        return task.run { TaskDto(id, name, description, url, taskIdToUserIds?.get(id)) }
     }
 
-    fun nodeToDto(node: Node): NodeDto {
-        return node.run { NodeDto(id, name, description, tasks.map { taskToDto(it) }) }
+    fun nodeToDto(node: Node, taskIdToUserIds: Map<Long, List<Long>>? = null): NodeDto {
+        return node.run { NodeDto(id, name, description, tasks.map { taskToDto(it, taskIdToUserIds) }) }
     }
 
 
-    fun roadMapToDto(roadMap: RoadMap): RoadMapDto {
+    fun roadMapToDto(roadMap: RoadMap, taskIdToUserIds: Map<Long, List<Long>>? = null): RoadMapDto {
         val votes = voteService.getVotesForRoadMap(roadMap.id ?: error("roadMap id is null"))
         val likes = votes.filter { it.liked }.count()
         val dislikes = votes.size - likes
@@ -46,11 +45,12 @@ class DtoConverterService(
                 name,
                 description,
                 category.id ?: throw IllegalStateException("category with no id"),
-                nodes.map { nodeToDto(it) },
+                nodes.map { nodeToDto(it, taskIdToUserIds) },
                 likes,
                 dislikes,
                 category.name,
-                roadMap.status.id
+                roadMap.status.id,
+                nodes.sumOf { it.tasks.size }
             )
         }
     }
@@ -167,6 +167,21 @@ class DtoConverterService(
 
     fun mapSessionToDto(session: MapSession, currentUser: User? = null): MapSessionDto {
         return session.run {
+            val taskIdToUserIds: HashMap<Long, MutableList<Long>> = hashMapOf()
+
+            users.forEach { user ->
+                user.tasksStates.forEach { taskState ->
+                    if(taskState.state) {
+                        taskState.task.id?.let { taskId ->
+                            if(taskId !in taskIdToUserIds) {
+                                taskIdToUserIds[taskId] = mutableListOf()
+                            }
+                            user.id?.let { taskIdToUserIds[taskId]!!.add(it) }
+                        }
+                    }
+                }
+            }
+
             MapSessionDto(
                 id,
                 userToDto(creator),
@@ -176,7 +191,7 @@ class DtoConverterService(
                 state.id,
                 groupChatUrl,
                 messages.map { sessionChatMessageToDto(it) },
-                roadMapToDto(session.roadMap),
+                roadMapToDto(session.roadMap, taskIdToUserIds),
                 users.any { it.user.id != null && it.user.id == currentUser?.id },
                 (currentUser != null && currentUser.id == creator.id),
                 users.firstOrNull { it.user.id != null && it.user.id == currentUser?.id }?.tasksStates?.filter { it.state }

@@ -21,4 +21,14 @@ interface SessionRepository : JpaRepository<MapSession?, Long?> {
         nativeQuery = true
     )
     fun findAllSessionsByUser(id: Long): List<MapSession>
+
+    @Query(
+        "SELECT ms.id, created_at, group_chat_url, public, start_date, state, creator_id, road_map_id, user_id " +
+                "FROM map_sessions ms JOIN map_sessions_users mu ON ms.id = mu.map_session_id JOIN map_states mstates " +
+                "ON mu.users_id = mstates.id WHERE user_id = ?1 AND state != 'FINISHED' ORDER BY created_at DESC",
+        nativeQuery = true
+    )
+    fun findAllActiveSessionsByUser(id: Long): List<MapSession>
+
+
 }

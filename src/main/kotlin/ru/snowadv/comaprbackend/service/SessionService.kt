@@ -93,4 +93,8 @@ class SessionService(private val repo: SessionRepository, private val roadMapSer
     fun getAllSessionsByUser(id: Long): List<MapSession> {
         return repo.findAllSessionsByUser(id)
     }
+
+    fun getAllActiveSessionsByUser(id: Long): List<MapSession> {
+        return repo.findAllActiveSessionsByUser(id)
+    }
 }

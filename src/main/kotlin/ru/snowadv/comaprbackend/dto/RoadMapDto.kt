@@ -15,5 +15,6 @@ data class RoadMapDto(
     val likes: Int? = null,
     val dislikes: Int? = null,
     val categoryName: String = "",
-    val statusId: Int = 0
+    val statusId: Int = 0,
+    val tasksCount: Int
 )
