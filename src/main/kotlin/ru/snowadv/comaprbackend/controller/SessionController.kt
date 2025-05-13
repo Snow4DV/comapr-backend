@@ -175,6 +175,30 @@ class SessionController(
         return ResponseEntity.ok(converted)
     }
 
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @PostMapping("/{id}/answerChallenges")
+    fun answerChallenges(
+        @PathVariable id: Long,
+        @PathVariable taskId: Long,
+        @RequestParam answers: Map<Long, String>,
+    ): ResponseEntity<Any> {
+        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
+        val session = sessionService.getById(id) ?: return ResponseEntity.status(404)
+            .body(MessageResponse("such_session_doesnt_exist"))
+        if (session.creator.id != user.id && !session.users.any { it.user == user }) return ResponseEntity.status(403)
+            .body(MessageResponse("not_in_session"))
+        if (session.state != MapSession.State.STARTED) {
+            return ResponseEntity.status(403).body(MessageResponse("session_not_started"))
+        }
+        val isSuccessfulAnswer = sessionService.answerChallenges(
+            sessionId = id,
+            taskId = taskId,
+            userId = user.id ?: error("not full user"),
+            answers = answers,
+        )
+
+        return ResponseEntity.ok(AnswerResultDto(isSuccessfulAnswer))
+    }
 
     private fun changeSessionState(start: Boolean, id: Long): ResponseEntity<Any> {
         val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
@@ -196,5 +220,4 @@ class SessionController(
             SecurityContextHolder.getContext().currentUserIdOrNull() ?: -1
         )
     }
-
 }

@@ -97,19 +97,19 @@ class AuthController(
             when (role) {
                 "admin" -> {
                     val adminRole: Role = roleRepository.findByName(ERole.ROLE_ADMIN)
-                        ?: throw RuntimeException("Error: Role is not found.")
+                        ?: createRolesAndGet(ERole.ROLE_ADMIN)
                     roles.add(adminRole)
                 }
 
                 "mod" -> {
                     val modRole: Role = roleRepository.findByName(ERole.ROLE_MODERATOR)
-                        ?: throw RuntimeException("Error: Role is not found.")
+                        ?: createRolesAndGet(ERole.ROLE_MODERATOR)
                     roles.add(modRole)
                 }
 
                 else -> {
                     val userRole: Role = roleRepository.findByName(ERole.ROLE_USER)
-                        ?: throw RuntimeException("Error: Role is not found.")
+                        ?: createRolesAndGet(ERole.ROLE_USER)
                     roles.add(userRole)
                 }
             }
@@ -146,6 +146,14 @@ class AuthController(
         val token = authorizationHeader?.let { if(it.length < 8) null else it.substring(7) }
         if(token == null || user == null) return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         return ResponseEntity.ok(JwtResponse(token, user.id ?: error("user has no id"), user.username, user.email, user.roles.map { it.name.name }))
+    }
+
+    private fun createRolesAndGet(role: ERole): Role {
+        ERole.entries.forEach {
+            roleRepository.save(Role(name = it))
+        }
+
+        return roleRepository.findByName(role) ?: error("No such role: $role")
     }
 
 }

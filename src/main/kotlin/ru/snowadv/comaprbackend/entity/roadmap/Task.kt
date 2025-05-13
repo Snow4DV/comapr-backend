@@ -27,5 +27,8 @@ class Task( // stores a single task
 
     @URL
     @Size(max = 150)
-    var url: String?
+    var url: String?,
+
+    @OneToMany(cascade = [CascadeType.ALL])
+    var challenges: List<Challenge> = listOf(),
 )

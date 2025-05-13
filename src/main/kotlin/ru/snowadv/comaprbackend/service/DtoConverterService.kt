@@ -27,17 +27,20 @@ class DtoConverterService(
     }
 
     fun taskToDto(task: Task, taskIdToUserIds: Map<Long, List<Long>>? = null): TaskDto {
-        return task.run { TaskDto(id, name, description, url, taskIdToUserIds?.get(id)) }
+        return task.run { TaskDto(id, name, description, url, taskIdToUserIds?.get(id), task.challenges.map { challengeToDto(it) }) }
     }
 
     fun nodeToDto(node: Node, taskIdToUserIds: Map<Long, List<Long>>? = null): NodeDto {
         return node.run { NodeDto(id, name, description, tasks.map { taskToDto(it, taskIdToUserIds) }) }
     }
 
+    fun challengeToDto(challenge: Challenge): ChallengeDto {
+        return challenge.run { ChallengeDto(id, description, answers, rightAnswer) }
+    }
 
     fun roadMapToDto(roadMap: RoadMap, taskIdToUserIds: Map<Long, List<Long>>? = null): RoadMapDto {
         val votes = voteService.getVotesForRoadMap(roadMap.id ?: error("roadMap id is null"))
-        val likes = votes.filter { it.liked }.count()
+        val likes = votes.count { it.liked }
         val dislikes = votes.size - likes
         return roadMap.run {
             RoadMapDto(
@@ -72,7 +75,11 @@ class DtoConverterService(
     }
 
     fun taskDtoToEntity(dto: TaskDto, creator: User? = null): Task {
-        return dto.run { Task(id, name, description, creator ?: roadMapService.getCreatorForMapId(id ?: -1), url) }
+        return dto.run { Task(id, name, description, creator ?: roadMapService.getCreatorForMapId(id ?: -1), url, dto.challenges.map { challengeDtoToEntity(it) }) }
+    }
+
+    fun challengeDtoToEntity(dto: ChallengeDto): Challenge {
+        return dto.run { Challenge(id, description, answers, rightAnswer) }
     }
 
     fun nodeDtoToEntity(dto: NodeDto, creator: User? = null): Node {

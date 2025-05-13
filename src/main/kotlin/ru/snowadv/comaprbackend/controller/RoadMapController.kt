@@ -67,9 +67,9 @@ class RoadMapController(
 
     @GetMapping("namesList")
     fun fetchMapsNames(@RequestParam statusId: Int?, @RequestParam categoryId: Long?): ResponseEntity<List<SimpleRoadMapDto>> {
-        val maps = roadMapService.getRoadMapsWithStatusAndOrCategory(statusId, categoryId).map {
+        val maps = roadMapService.getRoadMapsWithStatusAndOrCategory(statusId, categoryId).mapNotNull {
             converter.roadMapToSimpleDto(it)
-        }.filterNotNull()
+        }
         return ResponseEntity.ok(maps)
     }
 
@@ -129,8 +129,5 @@ class RoadMapController(
         } else {
             ResponseEntity.ok(converter.roadMapToDto(created))
         }
-
     }
-
-
 }

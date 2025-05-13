@@ -17,6 +17,29 @@ class RoadMapService(
     private val mapRepo: RoadMapRepository, private val nodeRepo: NodeRepository, private val taskRepo: TaskRepository
 ) {
 
+    fun removeTask(nodeId: Long, taskId: Long) {
+        val node = nodeRepo.findByIdOrNull(nodeId)
+        val task = taskRepo.findByIdOrNull(taskId)
+        if (node == null || task == null) throw NoSuchElementException("Such ${if (node == null) "node" else "task"} doesn't exist!")
+
+        node.tasks.remove(task)
+        nodeRepo.save(node)
+        taskRepo.delete(task)
+    }
+
+    fun getRoadMapsWithStatusAndOrCategory(status: RoadMap.VerificationStatus?, categoryId: Long?): List<RoadMap> {
+
+        return when {
+            status != null && categoryId != null -> mapRepo.findAllByStatusIsAndCategoryIdOrderByName(
+                status, categoryId
+            )
+
+            status != null -> mapRepo.findAllByStatusIsOrderByName(status)
+            categoryId != null -> mapRepo.findAllByCategoryIdOrderByName(categoryId)
+            else -> mapRepo.findAllBy()
+        }
+    }
+
     fun getRoadMapById(id: Long): RoadMap? {
         return mapRepo.findByIdOrNull(id)
     }
@@ -50,16 +73,6 @@ class RoadMapService(
 
         node.tasks.add(task)
         nodeRepo.save(node)
-    }
-
-    fun removeTask(nodeId: Long, taskId: Long) {
-        val node = nodeRepo.findByIdOrNull(nodeId)
-        val task = taskRepo.findByIdOrNull(taskId)
-        if (node == null || task == null) throw NoSuchElementException("Such ${if (node == null) "node" else "task"} doesn't exist!")
-
-        node.tasks.remove(task)
-        nodeRepo.save(node)
-        taskRepo.delete(task)
     }
 
     fun addNode(mapId: Long, node: Node) {
@@ -121,18 +134,7 @@ class RoadMapService(
         return getRoadMapsWithStatusAndOrCategory(status, categoryId)
     }
 
-    fun getRoadMapsWithStatusAndOrCategory(status: RoadMap.VerificationStatus?, categoryId: Long?): List<RoadMap> {
 
-        return when {
-            status != null && categoryId != null -> mapRepo.findAllByStatusIsAndCategoryIdOrderByName(
-                status, categoryId
-            )
-
-            status != null -> mapRepo.findAllByStatusIsOrderByName(status)
-            categoryId != null -> mapRepo.findAllByCategoryIdOrderByName(categoryId)
-            else -> mapRepo.findAllBy()
-        }
-    }
 
 
 }
