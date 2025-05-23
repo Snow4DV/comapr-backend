@@ -25,6 +25,40 @@ class SessionService(
     private val challengeRepository: ChallengeRepository,
     private val taskRepository: TaskRepository,
 ) {
+
+    fun answerChallenges(sessionId: Long, taskId: Long, userId: Long, answers: Map<Long, String>): Boolean {
+        val task = taskRepository.findByIdOrNull(taskId) ?: return false
+
+        val rightAnswersCount = answers.count { (challengeId, answer) ->
+            challengeRepository.findByIdOrNull(challengeId)?.rightAnswer == answer
+        }
+
+        val wrongAnswersCount = task.challenges.size - rightAnswersCount
+
+        val wasTaskFinished = rightAnswersCount >= wrongAnswersCount
+
+        markTask(
+            sessionId,
+            taskId,
+            userId,
+            wasTaskFinished
+        )
+
+        return wasTaskFinished
+    }
+
+    fun markTask(id: Long, taskId: Long, userId: Long, newState: Boolean): MapSession? {
+        val session = repo.findByIdOrNull(id) ?: throw NoSuchEntityException("session", id)
+        val userState = session.users.first { it.user.id == userId }
+        val userTasks = userState.tasksStates
+        val task = userTasks.firstOrNull { it.task.id == taskId }
+            ?: UserTaskCompletionState(task = roadMapService.getTaskById(taskId) ?: return null, state = newState)
+        task.state = newState
+
+        userTasks.add(task)
+        return updateSession(session)
+    }
+
     fun getById(id: Long): MapSession? {
         return repo.findByIdOrNull(id)
     }
@@ -58,17 +92,7 @@ class SessionService(
         return updateSession(session)
     }
 
-    fun markTask(id: Long, taskId: Long, userId: Long, newState: Boolean): MapSession? {
-        val session = repo.findByIdOrNull(id) ?: throw NoSuchEntityException("session", id)
-        val userState = session.users.first { it.user.id == userId }
-        val userTasks = userState.tasksStates
-        val task = userTasks.firstOrNull { it.task.id == taskId }
-            ?: UserTaskCompletionState(task = roadMapService.getTaskById(taskId) ?: return null, state = newState)
-        task.state = newState
 
-        userTasks.add(task)
-        return updateSession(session)
-    }
 
 
     fun getCreatorById(id: Long): User? {
@@ -109,20 +133,5 @@ class SessionService(
         return taskRepository.findByIdOrNull(taskId)?.challenges
     }
 
-    fun answerChallenges(sessionId: Long, taskId: Long, userId: Long, answers: Map<Long, String>): Boolean {
-        val rightAnswersCount = answers.count { (challengeId, answer) -> challengeRepository.findByIdOrNull(challengeId)?.rightAnswer == answer }
 
-        val wrongAnswersCount = answers.size - rightAnswersCount
-
-        val wasTaskFinished = rightAnswersCount >= wrongAnswersCount
-
-        markTask(
-            sessionId,
-            taskId,
-            userId,
-            wasTaskFinished
-        )
-
-        return wasTaskFinished
-    }
 }

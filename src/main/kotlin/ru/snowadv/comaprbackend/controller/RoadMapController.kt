@@ -57,7 +57,8 @@ class RoadMapController(
 
 
     @GetMapping("list")
-    fun fetchMaps(@RequestParam statusId: Int?, @RequestParam categoryId: Long?): ResponseEntity<List<CategorizedRoadMapsDto>> {
+    fun fetchMaps(@RequestParam statusId: Int?, @RequestParam categoryId: Long?):
+            ResponseEntity<List<CategorizedRoadMapsDto>> {
         val maps = roadMapService.getRoadMapsWithStatusAndOrCategory(statusId, categoryId).map {
             converter.roadMapToDto(it)
         }
@@ -113,7 +114,7 @@ class RoadMapController(
 
     }
 
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_USER')")
     @PostMapping("create")
     fun createRoadMap(@RequestBody dto: RoadMapDto): ResponseEntity<Any> {
         val map = converter.roadMapDtoToEntity(

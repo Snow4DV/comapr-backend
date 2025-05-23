@@ -18,7 +18,7 @@ class Task( // stores a single task
     @Size(max = 100)
     var name: String,
 
-    @Size(max = 200)
+    @Column(length = 200_000)
     var description: String?,
 
     @ManyToOne

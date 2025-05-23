@@ -27,11 +27,7 @@ class SessionController(
     private val converter: DtoConverterService,
     private val sessionService: SessionService
 ) {
-    @GetMapping("list")
-    fun fetchMaps(): ResponseEntity<List<MapSessionDto>> {
-        return ResponseEntity.ok(
-            sessionService.getPublicSessions(MapSession.State.LOBBY).map { converter.mapSessionToDto(it) })
-    }
+
 
     @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/{id}")
@@ -45,35 +41,6 @@ class SessionController(
         val convertedToDto = converter.mapSessionToDto(session, user)
         return ResponseEntity.ok(convertedToDto)
     }
-
-
-    @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("create")
-    fun createSession(@RequestBody dto: ClearMapSessionDto): ResponseEntity<Any> {
-        val user = getCurrentUser()
-        val mapSession = converter.createSessionDtoToEntity(
-            dto, user ?: return ResponseEntity.status(403).body(MessageResponse("unauthorized"))
-        )
-        val roadMap = roadMapService.getRoadMapById(dto.roadMapId) ?: return ResponseEntity.status(404)
-            .body(MessageResponse("no_such_roadmap"))
-        if (mapSession.creator.id != user.id) return ResponseEntity.status(403).body(MessageResponse("unauthorized"))
-        val savedSession = sessionService.createSession(mapSession)
-        return ResponseEntity.ok(converter.mapSessionToDto(savedSession, user))
-    }
-
-    @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("/{id}/update")
-    fun updateSession(@RequestBody dto: ClearMapSessionDto, @PathVariable id: Long): ResponseEntity<Any> {
-        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
-        val oldSession = sessionService.getById(id) ?: return ResponseEntity.status(404)
-            .body(MessageResponse("such_session_doesnt_exist"))
-        if (oldSession.state != MapSession.State.LOBBY) return ResponseEntity.status(403)
-            .body(MessageResponse("session_already_started"))
-        if (oldSession.creator.id != user.id) return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
-        val updatedSession = sessionService.updateSession(converter.updateSessionDtoToEntity(id, dto, user))
-        return ResponseEntity.ok(converter.mapSessionToDto(updatedSession, user))
-    }
-
 
     @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping("/{id}/start")
@@ -104,6 +71,43 @@ class SessionController(
             .body(MessageResponse("already_joined"))
         return ResponseEntity.ok(converter.mapSessionToDto(session, user))
     }
+
+
+
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @PostMapping("create")
+    fun createSession(@RequestBody dto: ClearMapSessionDto): ResponseEntity<Any> {
+        val user = getCurrentUser()
+        val mapSession = converter.createSessionDtoToEntity(
+            dto, user ?: return ResponseEntity.status(403).body(MessageResponse("unauthorized"))
+        )
+        val roadMap = roadMapService.getRoadMapById(dto.roadMapId) ?: return ResponseEntity.status(404)
+            .body(MessageResponse("no_such_roadmap"))
+        if (mapSession.creator.id != user.id) return ResponseEntity.status(403).body(MessageResponse("unauthorized"))
+        val savedSession = sessionService.createSession(mapSession)
+        return ResponseEntity.ok(converter.mapSessionToDto(savedSession, user))
+    }
+
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @PostMapping("/{id}/update")
+    fun updateSession(@RequestBody dto: ClearMapSessionDto, @PathVariable id: Long): ResponseEntity<Any> {
+        val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
+        val oldSession = sessionService.getById(id) ?: return ResponseEntity.status(404)
+            .body(MessageResponse("such_session_doesnt_exist"))
+        if (oldSession.state != MapSession.State.LOBBY) return ResponseEntity.status(403)
+            .body(MessageResponse("session_already_started"))
+        if (oldSession.creator.id != user.id) return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
+        val updatedSession = sessionService.updateSession(converter.updateSessionDtoToEntity(id, dto, user))
+        return ResponseEntity.ok(converter.mapSessionToDto(updatedSession, user))
+    }
+
+
+    @GetMapping("list")
+    fun fetchMaps(): ResponseEntity<List<MapSessionDto>> {
+        return ResponseEntity.ok(
+            sessionService.getPublicSessions(MapSession.State.LOBBY).map { converter.mapSessionToDto(it) })
+    }
+
 
 
     @PreAuthorize("hasRole('ROLE_USER')")
@@ -176,11 +180,11 @@ class SessionController(
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("/{id}/answerChallenges")
+    @PostMapping("/{id}/tasks/{taskId}/answerChallenges")
     fun answerChallenges(
         @PathVariable id: Long,
         @PathVariable taskId: Long,
-        @RequestParam answers: Map<Long, String>,
+        @RequestBody answers: Map<Long, String>,
     ): ResponseEntity<Any> {
         val user = getCurrentUser() ?: return ResponseEntity.status(401).body(MessageResponse("not_authorized"))
         val session = sessionService.getById(id) ?: return ResponseEntity.status(404)

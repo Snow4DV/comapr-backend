@@ -17,16 +17,6 @@ class RoadMapService(
     private val mapRepo: RoadMapRepository, private val nodeRepo: NodeRepository, private val taskRepo: TaskRepository
 ) {
 
-    fun removeTask(nodeId: Long, taskId: Long) {
-        val node = nodeRepo.findByIdOrNull(nodeId)
-        val task = taskRepo.findByIdOrNull(taskId)
-        if (node == null || task == null) throw NoSuchElementException("Such ${if (node == null) "node" else "task"} doesn't exist!")
-
-        node.tasks.remove(task)
-        nodeRepo.save(node)
-        taskRepo.delete(task)
-    }
-
     fun getRoadMapsWithStatusAndOrCategory(status: RoadMap.VerificationStatus?, categoryId: Long?): List<RoadMap> {
 
         return when {

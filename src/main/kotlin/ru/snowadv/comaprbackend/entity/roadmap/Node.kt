@@ -16,7 +16,7 @@ class Node( // stores a bunch of tasks + description for them
     @Size(max = 100)
     var name: String,
 
-    @Size(max = 200)
+    @Size(max = 100_000)
     var description: String?,
 
     @ManyToOne
